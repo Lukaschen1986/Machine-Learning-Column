@@ -32,10 +32,6 @@ x_train, x_valid, y_train, y_valid = train_test_split(x_train, y_train, test_siz
 
 
 class XGBoost(GBDT):
-    """
-    self = XGBoost(min_samples_split=2, max_depth=6, n_estimators=100, learning_rate=0.1,
-                   alpha=0, lamb=1, gamma=0, subsample=0.9, colsample=0.9)
-    """
     def __init__(self, min_samples_split=2, max_depth=6, n_estimators=100, learning_rate=0.1,
                  alpha=0, lamb=1, gamma=0, subsample=0.9, colsample=0.9):
         GBDT.__init__(self, min_samples_split, max_depth, n_estimators, learning_rate)
