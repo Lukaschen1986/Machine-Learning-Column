@@ -32,9 +32,6 @@ x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.2, random_
 
 # 手写 CART
 class CART(object):
-    """
-    self = CART(min_samples_split=2, max_depth=None)
-    """
     def __init__(self, min_samples_split=2, max_depth=None):
         self.min_samples_split = min_samples_split
         self.max_depth = (float("inf") if not max_depth else max_depth)
