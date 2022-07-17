@@ -31,9 +31,6 @@ x_train, x_valid, y_train, y_valid = train_test_split(x_train, y_train, test_siz
 
 
 class GBDT(CART):
-    """
-    self = GBDT(min_samples_split=2, max_depth=3, n_estimators=100, learning_rate=0.1)
-    """
     def __init__(self, min_samples_split=2, max_depth=3, n_estimators=100, learning_rate=0.1):
         CART.__init__(self, min_samples_split, max_depth)
         self.n_estimators = n_estimators
