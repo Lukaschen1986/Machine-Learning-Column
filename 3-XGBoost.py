@@ -3,19 +3,20 @@ import os
 import sys
 import copy
 #from collections import defaultdict
+import random as rd
 import numpy as np
 import pandas as pd
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_squared_error
-from sklearn.ensemble import GradientBoostingRegressor
-from CART.run import CART
+#from sklearn.ensemble import GradientBoostingRegressor
+from GBDT.run import GBDT
 
 
-path_project = "D:/my_project/Python_Project/ML/GBDT/"
+path_project = "D:/my_project/Python_Project/ML/XGBoost/"
 
 
 # 构造数据集
-n = 100
+n = 50
 x0 = np.random.uniform(0, 10, [n, 4])
 x1 = np.random.uniform(50, 60, [n, 4])
 x = np.concatenate([x0, x1], axis=0)
@@ -30,16 +31,19 @@ x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.2, random_
 x_train, x_valid, y_train, y_valid = train_test_split(x_train, y_train, test_size=0.2, random_state=0)
 
 
-class GBDT(CART):
+class XGBoost(GBDT):
     """
-    self = GBDT(min_samples_split=2, max_depth=3, n_estimators=100, learning_rate=0.1)
+    self = XGBoost(min_samples_split=2, max_depth=6, n_estimators=100, learning_rate=0.1,
+                   alpha=0, lamb=1, gamma=0, subsample=0.9, colsample=0.9)
     """
-    def __init__(self, min_samples_split=2, max_depth=3, n_estimators=100, learning_rate=0.1):
-        CART.__init__(self, min_samples_split, max_depth)
-        self.n_estimators = n_estimators
-        self.learning_rate = learning_rate
-        self._forest = {}
-        self._eval_result = {}
+    def __init__(self, min_samples_split=2, max_depth=6, n_estimators=100, learning_rate=0.1,
+                 alpha=0, lamb=1, gamma=0, subsample=0.9, colsample=0.9):
+        GBDT.__init__(self, min_samples_split, max_depth, n_estimators, learning_rate)
+        self.alpha = alpha
+        self.lamb = lamb
+        self.gamma = gamma
+        self.subsample = subsample
+        self.colsample = colsample
     
     
     def check(self):
@@ -57,6 +61,20 @@ class GBDT(CART):
             raise TypeError("learning_rate must be an float") 
         if self.learning_rate <= 0:
             raise ValueError(f"learning_rate must greater than 0 but was {self.learning_rate}")
+        if self.alpha < 0:
+            raise ValueError("alpha must greater than 0")
+        if self.lamb < 0:
+            raise ValueError("lambda must greater than 0")
+        if self.gamma < 0:
+            raise ValueError("gamma must greater than 0")
+        if not isinstance(self.subsample, float):
+            raise TypeError("subsample must be an float")
+        if (self.subsample <= 0) or (self.subsample > 1):
+            raise ValueError("subsample must in (0, 1]")
+        if not isinstance(self.colsample, float):
+            raise TypeError("colsample must be an float")
+        if (self.colsample <= 0) or (self.colsample > 1):
+            raise ValueError("colsample must in (0, 1]")
     
     
     def fit(self, x_train, y_train, x_valid, y_valid):
@@ -72,10 +90,10 @@ class GBDT(CART):
         # 前向分步
         for epoch in range(self.n_estimators):
             # train
-            r_train = y_train - y_train_pre
-            D = pd.concat([r_train, x_train], axis=1)
-            self._depth = -1
-            self._tree = self._build_tree(D)  # 继承 CART
+            D = self._sampling(x_train, y_train)  # 行抽样 + 列抽样
+            D = self._add_gradient_info(D, y_train_pre)  # 预先计算本轮的 g 和 h
+            self._depth = -1  # 初始化树的深度
+            self._tree = self._build_tree_xgb(D)  # 重写
             self._forest[epoch] = self._tree
             
             y_train_hat = self.predict(x_train)  # 继承 CART
@@ -103,31 +121,89 @@ class GBDT(CART):
         return self
 
 
-    def predict_boost(self, x_test):
-        y_test_res = np.zeros(len(x_test))
+    def _sampling(self, x_train, y_train):
+        n = len(x_train)
+        p = len(x_train.columns)
         
-        for (epoch, sub_tree) in self._forest.items():
-            self._tree = sub_tree
-            y_test_hat = self.predict(x_test)
-            y_test_res += self.learning_rate*y_test_hat
+        row = rd.sample(x_train.index.tolist(), int(n*self.subsample))
+        col = rd.sample(x_train.columns.tolist(), int(p*self.colsample))
         
-        return y_test_res
+        x_sub = x_train.loc[x_train.index.isin(row), col]
+        y_sub = y_train.loc[y_train.index.isin(row)]
+        D = pd.concat([y_sub, x_sub], axis=1)
+        return D
+    
+    
+    def _add_gradient_info(self, D, y_train_pre):
+        y_train_pre_sub = y_train_pre.loc[y_train_pre.index.isin(D.index)]
+        g = pd.Series(y_train_pre_sub - D.y, name="g", index=D.index)
+        h = pd.Series(np.ones_like(D.y), name="h", index=D.index)
+        D = pd.concat([g, h, D], axis=1)
+        return D
+    
+    
+    def _build_tree_xgb(self, D):
+        # 递归终止条件
+        if len(D) < self.min_samples_split:
+            c = self._get_c(D)
+            return c
+        if self._depth == self.max_depth:
+            c = self._get_c(D)
+            return c
+        
+        # 递归建树
+        best_gain = float("-inf")
+        
+        for col in D.columns[3:]:
+            D = D.sort_values(by=col)
+            
+            for i in range(1, len(D)):
+                D1 = D[0: i]
+                D2 = D[i: ]
+                g1 = D1.g; h1 = D1.h
+                g2 = D2.g; h2 = D2.h
+                g = D.g; h = D.h
+                gain = self._get_gain(g, h, g1, h1, g2, h2)
+                
+                if gain > best_gain:
+                    best_gain = gain
+                    best_col = col
+                    best_val = np.round(D[col].iloc[i], 6)
+                    best_D1 = D1
+                    best_D2 = D2
+        
+        self._depth += 1
+        left_rule = " < " + str(best_val)
+        right_rule = " >= " + str(best_val)
+        node = {best_col: {}}
+        node[best_col][left_rule] = self._build_tree_xgb(best_D1)
+        node[best_col][right_rule] = self._build_tree_xgb(best_D2)
+        return node
+    
+    
+    def _get_c(self, D):
+        c = -1.0 * (np.sum(D.g) + self.alpha) / (np.sum(D.h) + self.lamb)
+        return np.round(c, 6)
+    
+    
+    def _get_gain(self, g, h, g1, h1, g2, h2):
+        left = (np.sum(g1) + self.alpha)**2 / (np.sum(h1) + self.lamb)
+        right = (np.sum(g2) + self.alpha)**2 / (np.sum(h2) + self.lamb)
+        parent = (np.sum(g) + self.alpha)**2 / (np.sum(h) + self.lamb)
+        gain = left + right - parent - self.gamma
+        return gain
+    
+    
     
 
 
 if __name__ == "__main__":
     print(path_project)
+    XGBoost.mro()
     
-    # sklearn GBDT
-    estimator = GradientBoostingRegressor(loss="squared_error", min_samples_split=2, max_depth=3,
-                                          n_estimators=100, learning_rate=0.1)
-    estimator.fit(x_train, y_train)
-    y_hat_sk = estimator.predict(x_test)
-    rmse_sk = mean_squared_error(y_test, y_hat_sk)
-    print(rmse_sk)
-    
-    # 手写 GBDT
-    estimator = GBDT(min_samples_split=2, max_depth=3, n_estimators=100, learning_rate=0.1)
+    # 手写 XGBoost
+    estimator = XGBoost(min_samples_split=2, max_depth=6, n_estimators=100, learning_rate=0.1,
+                        alpha=0, lamb=1, gamma=0, subsample=0.9, colsample=0.9)
     estimator.fit(x_train, y_train, x_valid, y_valid)
     
     y_hat = estimator.predict_boost(x_test)
