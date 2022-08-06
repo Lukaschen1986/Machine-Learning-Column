@@ -7,9 +7,6 @@ from gensim.models.word2vec import Word2Vec
 
 
 class DeepWalk(object):
-    """
-    self = DeepWalk(config)
-    """
     def __init__(self, config):
         self.config = config
         
