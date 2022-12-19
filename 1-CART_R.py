@@ -44,7 +44,6 @@ class TreeNode(object):
         self.split_val = split_val
         self.c = c
     
-    
     def get_c(self, x, current_depth=0):
         if (not self.left) and (not self.right):
             return self.c
@@ -81,7 +80,6 @@ class CART(object):
         # 构造二叉回归树
         self._tree = self._build_tree(D, 0)
         return self
-    
     
     
     def _build_tree(self, D, current_depth):
