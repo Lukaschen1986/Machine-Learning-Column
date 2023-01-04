@@ -1,12 +1,14 @@
 # -*- coding: utf-8 -*-
 from flask import (Flask, abort, redirect, request, jsonify, make_response)
-#from flask_script import Manager # 命令行参数接收 shell, runserver
+# from flask_script import Manager # 命令行参数接收 shell, runserver
 
 
 app = Flask(__name__)
 #manager = Manager(app=app)
 
 # get start
+
+
 @app.route("/")
 def get_start():
     return "Hello World!"
@@ -19,19 +21,19 @@ def hello_world():
 
 
 # http方法: GET, POST, PUT, DELETE
-@app.route("/return_time_pred", methods=["POST"])
+@app.route("/test_inference", methods=["POST"])
 def apply():
     # 获取请求参数
     req = request.get_json()
-    
+
     # 业务代码
     data = req.get()
 
     # 构造响应对象
     rsp = jsonify(
-            orderId="",
-            memberId=""
-            )
+        orderId="",
+        memberId=""
+    )
     return rsp
 
 
