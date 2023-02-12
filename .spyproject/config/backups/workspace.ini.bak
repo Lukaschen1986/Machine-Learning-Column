@@ -4,7 +4,7 @@ save_data_on_exit = True
 save_history = True
 save_non_project_files = False
 project_type = 'empty-project-type'
-recent_files = ['1-CART_R.py', '13-CART_C.py', 'tools\\Attention.py', 'tools\\NetworkX.py']
+recent_files = ['attention_is_all_you_need\\multi_head_attention.py', 'attention_is_all_you_need\\positional_encoding.py']
 
 [main]
 version = 0.2.0
