@@ -16,7 +16,9 @@ path = os.path.dirname(__file__)
 
 # ----------------------------------------------------------------------------------------------------------------
 # 获取输入序列的词元及其片段索引
-def _get_token_and_segments(tokens_a, tokens_b=None):
+
+
+def get_token_and_segments(tokens_a, tokens_b=None):
     tokens = ["<cls>"] + tokens_a + ["<sep>"]
     segments = [0] * (len(tokens_a) + 2)
 
