@@ -7,9 +7,6 @@ from multi_head_attention import MultiHeadAttention
 from add_norm import AddNorm
 from position_wise_ffn import PositionWiseFFN
 
-print(th.__version__)
-print(th.version.cuda)
-print(th.backends.cudnn.version())
 th.set_default_tensor_type(th.DoubleTensor)
 device = th.device("cuda" if th.cuda.is_available() else "cpu")
 

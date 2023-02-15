@@ -6,27 +6,10 @@ from torch import nn
 from d2l import torch as d2l
 from encoder_block import EncoderBlock
 
-print(th.__version__)
-print(th.version.cuda)
-print(th.backends.cudnn.version())
 th.set_default_tensor_type(th.DoubleTensor)
 device = th.device("cuda" if th.cuda.is_available() else "cpu")
 
 path = os.path.dirname(__file__)
-
-# ----------------------------------------------------------------------------------------------------------------
-# 获取输入序列的词元及其片段索引
-
-
-def get_token_and_segments(tokens_a, tokens_b=None):
-    tokens = ["<cls>"] + tokens_a + ["<sep>"]
-    segments = [0] * (len(tokens_a) + 2)
-
-    if tokens_b is not None:
-        tokens += tokens_b + ["<sep>"]
-        segments += [1] * (len(tokens_b + 1))
-
-    return tokens, segments
 
 
 # ----------------------------------------------------------------------------------------------------------------

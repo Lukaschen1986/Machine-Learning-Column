@@ -5,12 +5,8 @@ import torch as th
 from torch import nn
 from d2l import torch as d2l
 from position_encoding import PositionEncoding
-from encoder_block import EncoderBlock
 from decoder_block import DecoderBlock
 
-print(th.__version__)
-print(th.version.cuda)
-print(th.backends.cudnn.version())
 th.set_default_tensor_type(th.DoubleTensor)
 device = th.device("cuda" if th.cuda.is_available() else "cpu")
 
