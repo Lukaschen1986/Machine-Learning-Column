@@ -156,10 +156,9 @@ pretrained = BertModel.from_pretrained(
 
 # ----------------------------------------------------------------------------------------------------------------
 # 定义下游模型
-# 考虑用 Bert-BiLSTM-CRF 改写
-class NextModel(nn.Module):
+class BiLSTM_CRF(nn.Module):
     def __init__(self):
-        super(NextModel).__init__()
+        super(BiLSTM_CRF).__init__()
         self.tuneing = False
         self.pretrained = None
         self.rnn = torch.nn.GRU(768, 768, batch_first=True)
