@@ -18,14 +18,14 @@ path_model = os.path.join(os.path.dirname(path_project), "model")
 
 # ----------------------------------------------------------------------------------------------------------------
 # 加载分词器
-# pretrained_model_name = "bert-base-chinese"
-pretrained_model_name = "hfl/rbt6"
-# pretrained_model_name = "hfl/chinese-bert-wwm-ext"
-# pretrained_model_name = "nghuyong/ernie-3.0-base-zh"
-# pretrained_model_name = "nghuyong/ernie-1.0-base-zh"
+# checkpoint = "bert-base-chinese"
+checkpoint = "hfl/rbt6"
+# checkpoint = "hfl/chinese-bert-wwm-ext"
+# checkpoint = "nghuyong/ernie-3.0-base-zh"
+# checkpoint = "nghuyong/ernie-1.0-base-zh"
 
 tokenizer = BertTokenizer.from_pretrained(
-    pretrained_model_name_or_path=pretrained_model_name,
+    pretrained_model_name_or_path=checkpoint,
     cache_dir=path_model,
     force_download=False,
     local_files_only=True
@@ -34,7 +34,7 @@ tokenizer = BertTokenizer.from_pretrained(
 # ----------------------------------------------------------------------------------------------------------------
 # 加载预训练模型
 pretrained = BertModel.from_pretrained(
-    pretrained_model_name_or_path=pretrained_model_name,
+    pretrained_model_name_or_path=checkpoint,
     cache_dir=path_model,
     force_download=False,
     local_files_only=True
@@ -161,9 +161,15 @@ def collate_fn(dataset):
                                          return_length=True,
                                          is_split_into_words=True)
     
+    # 补齐label序列，BER要求
+    for i in range(len(labels)):
+        labels[i] = [7] + labels[i] + [7]*max_length
+        labels[i] = labels[i][0:max_length]
+    
     labels = th.LongTensor(labels)
     return inputs, labels
 
+dataset = Dataset()
 loader = th.utils.data.DataLoader(dataset=dataset,
                                   batch_size=16,
                                   collate_fn=collate_fn,
@@ -182,24 +188,18 @@ class BERT_BiLSTM_CRF(nn.Module):
         self.dropout = config.get("dropout")
         self.device = config.get("device")
         
-        self.lstm_layer = nn.LSTM(
-            input_size=self.embedding_dim,
-            hidden_size=self.hidden_dim,
-            num_layers=1,
-            dropout=self.dropout,
-            batch_first=True,
-            bidirectional=True
-            )
+        self.lstm_layer = nn.LSTM(input_size=self.embedding_dim,
+                                  hidden_size=self.hidden_dim,
+                                  num_layers=1,
+                                  dropout=self.dropout,
+                                  batch_first=True,
+                                  bidirectional=True)
         
-        self.mlp_layer = nn.Linear(
-            in_features=self.hidden_dim*2,
-            out_features=self.tagset_size
-            )
+        self.mlp_layer = nn.Linear(in_features=self.hidden_dim*2,
+                                   out_features=self.tagset_size)
         
-        self.crf = CRF(
-            num_tags=self.tagset_size,
-            batch_first=True
-            )
+        self.crf = CRF(num_tags=self.tagset_size,
+                       batch_first=True)
         
         def forward(self, inputs):
             # embedding_layer
@@ -207,11 +207,10 @@ class BERT_BiLSTM_CRF(nn.Module):
             segments = inputs["token_type_ids"]
             valid_lens = inputs["attention_mask"]
             
-            output_bert = self.pretrained(
-                input_ids=tokens,
-                token_type_ids=segments,
-                attention_mask=valid_lens
-                ).last_hidden_state
+            output_bert = self.pretrained(input_ids=tokens,
+                                          token_type_ids=segments,
+                                          attention_mask=valid_lens
+                                          ).last_hidden_state
             
             # lstm_layer [num_layers, batch_size, hidden_dim]
             h0 = (th.randn([2, output_bert.shape[0], self.hidden_dim]) * 0.01).to(self.device)
