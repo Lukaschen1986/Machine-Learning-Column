@@ -12,6 +12,7 @@ from transformers import (pipeline,
                           AutoModel, BertModel, BertConfig,
                           AutoModelForSequenceClassification, 
                           AdamW)
+from transformers import (DataCollatorWithPadding, default_data_collator)
 from datasets import (load_dataset, load_from_disk)
 from torchcrf import CRF
 import torch.optim as optim
@@ -100,7 +101,7 @@ def collate_fn(dataset):
 # 数据迭代器
 loader = th.utils.data.DataLoader(dataset=Dataset(),
                                   batch_size=16,
-                                  collate_fn=collate_fn,
+                                  collate_fn=collate_fn,  # 简单: DataCollatorWithPadding(tokenizer)
                                   shuffle=True,
                                   drop_last=True)
 
@@ -109,7 +110,7 @@ class Model(th.nn.Module):
     def __init__(self, config):
         super(Model, self).__init__()
         self.pretrained = config.get("pretrained")
-        self.mlp = th.nn.Linear(768, 2)
+        self.mlp = th.nn.Linear(768, 2)  # 此处可设计为多层mlp，用nn.Sequential包裹
 
     def forward(self, inputs):
         tokens = inputs["input_ids"]
@@ -126,7 +127,7 @@ class Model(th.nn.Module):
         return out_mlp
 
 # ----------------------------------------------------------------------------------------------------------------
-# 中文填空
+# 完形填空
 # 数据集类
 class Dataset(th.utils.data.Dataset):
     def __init__(self):
@@ -179,9 +180,9 @@ class Model(th.nn.Module):
     def __init__(self, config):
         super(Model, self).__init__()
         self.pretrained = config.get("pretrained")
-        self.decoder = th.nn.Linear(768, tokenizer.vocab_size, bias=False)
-        bias = th.nn.Parameter(th.zeros(tokenizer.vocab_size))
-        self.decoder.bias = bias
+        self.mlp = th.nn.Linear(768, tokenizer.vocab_size, bias=False)
+        bias = th.nn.Parameter(th.zeros(tokenizer.vocab_size))  # 可选
+        self.mlp.bias = bias  # 可选
 
     def forward(self, tokens, segments, valid_lens):
         output_bert = self.pretrained(
@@ -190,8 +191,8 @@ class Model(th.nn.Module):
             attention_mask=valid_lens
             ).last_hidden_state
 
-        out = self.decoder(output_bert[:, 15, :])
-        return out
+        out_mlp = self.mlp(output_bert[:, 15, :])
+        return out_mlp
 
 # ----------------------------------------------------------------------------------------------------------------
 # 中文句子关系推断
@@ -241,7 +242,7 @@ def collate_fn(dataset):
                                          return_length=True,
                                          add_special_tokens=True)
     
-    labels = torch.LongTensor(labels)
+    labels = th.LongTensor(labels)
     return inputs, labels
 
 
