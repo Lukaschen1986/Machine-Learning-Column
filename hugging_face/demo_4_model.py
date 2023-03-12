@@ -84,14 +84,15 @@ class Dataset(th.utils.data.Dataset):
 
 # 整理函数
 def collate_fn(dataset):
-    texts = [i[0] for i in dataset]
-    labels = [i[1] for i in dataset]
+    texts = [x[0] for x in dataset]
+    labels = [x[1] for x in dataset]
+    max_length = max(len(x) for x in texts)
     
     #编码
     inputs = tokenizer.batch_encode_plus(batch_text_or_text_pairs=texts,
                                          truncation=True,
                                          padding="max_length",
-                                         max_length=500,
+                                         max_length=max_length,
                                          return_tensors="pt",
                                          return_length=True)
 
@@ -99,7 +100,8 @@ def collate_fn(dataset):
     return inputs, labels
 
 # 数据迭代器
-loader = th.utils.data.DataLoader(dataset=Dataset(),
+dataset = Dataset()
+loader = th.utils.data.DataLoader(dataset=dataset,
                                   batch_size=16,
                                   collate_fn=collate_fn,  # 简单: DataCollatorWithPadding(tokenizer)
                                   shuffle=True,
@@ -125,6 +127,46 @@ class Model(th.nn.Module):
 
         out_mlp = self.mlp(output_bert[:, 0, :])
         return out_mlp
+
+# 训练
+model = Model(config).to(device)
+opti = optim.Adam(params=model.parameters(), lr=0.01, betas=(0.9, 0.999), eps=10**-8, weight_decay=0.01)
+# opti = optim.SGD(params=model.parameters(), lr=0.01, momentum=0.9)
+# objt = nn.CrossEntropyLoss(ignore_index=tokenizer.pad_token_id, reduction="mean")
+objt = nn.CrossEntropyLoss(reduction="mean")
+epochs = 200
+
+for epoch in range(epochs):
+    # train
+    loss_tmp = 0
+    model.train()
+    for (i, (inputs, labels)) in enumerate(loader):
+        output_mlp = model(inputs)
+        loss = objt(output_mlp, labels)
+        loss_tmp += loss.item()
+        
+        opti.zero_grad(set_to_none=True)
+        loss.backward()
+        opti.step()
+    
+    loss_train = loss_tmp / (i+1)
+    print(f"epoch {epoch}  loss_train {loss_train:.4f}")
+
+# 推理
+max_length = len(texts)
+inputs = tokenizer.batch_encode_plus(batch_text_or_text_pairs=texts,
+                                     truncation=True,
+                                     padding="max_length",
+                                     max_length=max_length,
+                                     return_tensors="pt",
+                                     return_length=True)
+
+model.eval()
+with th.no_grad():
+    out_mlp = model(inputs)
+    y_hat = th.softmax(out_mlp, dim=1)
+    y_pred = th.argmax(y_hat, dim=1)
+
 
 # ----------------------------------------------------------------------------------------------------------------
 # 完形填空
