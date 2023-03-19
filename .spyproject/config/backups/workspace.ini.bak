@@ -4,7 +4,7 @@ save_data_on_exit = True
 save_history = True
 save_non_project_files = False
 project_type = 'empty-project-type'
-recent_files = ['..\\minGPT\\mingpt\\trainer.py', 'gpt\\model.py', 'gpt\\new_gelu.py', 'gpt\\causal_self_attention.py', 'gpt\\block.py']
+recent_files = ['mini_gpt\\model.py', 'mini_gpt\\causal_self_attention.py', 'mini_gpt\\gpt.py']
 
 [main]
 version = 0.2.0
