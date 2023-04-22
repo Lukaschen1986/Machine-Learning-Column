@@ -86,7 +86,7 @@ class Dataset(th.utils.data.Dataset):
 def collate_fn(dataset):
     texts = [x[0] for x in dataset]
     labels = [x[1] for x in dataset]
-    max_length = max(len(x) for x in texts)
+    max_length = max(len(x) for x in texts) + 2
     
     #编码
     inputs = tokenizer.batch_encode_plus(batch_text_or_text_pairs=texts,
