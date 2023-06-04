@@ -1,5 +1,7 @@
 data/
+*/data/
 model/
+*/model/
 *.json
 *.bin
 
