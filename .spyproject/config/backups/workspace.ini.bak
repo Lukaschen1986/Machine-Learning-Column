@@ -4,7 +4,7 @@ save_data_on_exit = True
 save_history = True
 save_non_project_files = False
 project_type = 'empty-project-type'
-recent_files = ['mini_gpt\\model.py', 'mini_gpt\\causal_self_attention.py', 'mini_gpt\\gpt.py', 'tools\\match_for_str.py', '..\\..\\..\\Files\\anaconda3\\lib\\site-packages\\sklearn\\feature_extraction\\text.py', '..\\..\\..\\Files\\anaconda3\\lib\\site-packages\\fuzzywuzzy\\process.py', 'hugging_face\\demo_4_model.py', 'hugging_face\\demo_text2img.py']
+recent_files = ['hugging_face\\demo_4_model.py', 'tools\\Demo_AdamW.py']
 
 [main]
 version = 0.2.0
