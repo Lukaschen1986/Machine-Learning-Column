@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 """
+价值迭代
 https://www.bilibili.com/video/BV1Yo4y1n7om/?spm_id_from=333.880.my_history.page.click&vd_source=fac9279bd4e33309b405d472b24286a8
 """
 import os
@@ -81,18 +82,4 @@ while not flag:
     print(s)
     
     
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 

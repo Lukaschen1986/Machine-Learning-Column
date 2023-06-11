@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 """
+策略迭代
 https://www.bilibili.com/video/BV1R84y1T7s8/?spm_id_from=333.999.0.0&vd_source=fac9279bd4e33309b405d472b24286a8
 """
 import os
@@ -137,6 +138,4 @@ while not flag:
     env.render()
     print(s)
         
-
-
 
