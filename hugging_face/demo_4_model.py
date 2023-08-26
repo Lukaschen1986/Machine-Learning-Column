@@ -271,25 +271,31 @@ class Dataset(th.utils.data.Dataset):
 
 
 # 整理函数
-def collate_fn(dataset):
-    sents = [x[0:2] for x in dataset]
-    labels = [x[2] for x in dataset]
+def collate_fn(data_set):
+    sents = [x[0:2] for x in data_set]  # 适用于定义数据集
+    labels = [x[2] for x in data_set]  # 适用于定义数据集
+    # sents = [(dct.get("sent1"), dct.get("sent2")) for dct in data_set]  # 适用于 Dataset.from_pandas()
+    # labels = [dct.get("label") for dct in data_set]  # 适用于 Dataset.from_pandas()
+    max_length = max(len(x[0]) + len(x[1]) for x in sents) + 3
 
     #编码
     inputs = tokenizer.batch_encode_plus(batch_text_or_text_pairs=sents,
                                          truncation=True,
                                          padding="max_length",
-                                         max_length=45,
+                                         max_length=max_length,
+                                         add_special_tokens=True,
+                                         return_token_type_ids=True,
+                                         return_attention_mask=True,
+                                         return_special_tokens_mask=True,
                                          return_tensors="pt",
-                                         return_length=True,
-                                         add_special_tokens=True)
-    
+                                         return_length=True)
     labels = th.LongTensor(labels)
     return inputs, labels
 
 
 # 数据迭代器
-loader = th.utils.data.DataLoader(dataset=Dataset(),
+data_set = Dataset()
+loader = th.utils.data.DataLoader(dataset=data_set,
                                   batch_size=16,
                                   collate_fn=collate_fn,
                                   shuffle=True,

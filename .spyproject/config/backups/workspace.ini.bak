@@ -4,7 +4,7 @@ save_data_on_exit = True
 save_history = True
 save_non_project_files = False
 project_type = 'empty-project-type'
-recent_files = ['RL\\demo_2.py', 'RL\\demo_1.py', 'RL\\demo_3.py']
+recent_files = ['RL\\demo_1.py', 'RL\\demo_3.py']
 
 [main]
 version = 0.2.0

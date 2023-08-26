@@ -1,7 +1,4 @@
 # -*- coding: utf-8 -*-
-'''
-
-'''
 import os
 import numpy as np
 import torch as th
@@ -39,8 +36,9 @@ dataset = load_dataset(
     split="all"
     )
 
-dataset = Dataset.from_pandas(df, features)
-
+features = [...]
+data_set = Dataset.from_pandas(df, features).train_test_split(test_size=0.15, shuffle=True, seed=0)
+train_set = data_set.get("train")
 
 # ----------------------------------------------------------------------------------------------------------------
 # 定义数据集
@@ -84,6 +82,29 @@ class Dataset(th.utils.data.Dataset):
         labels = self.dataset[self.split][i]["ner_tags"]
         return tokens, labels 
     
+
+class Dataset(th.utils.data.Dataset):
+    def __init__(self, split=None):
+        if split == "train":
+            self.dataset = load_dataset(data_files=os.path.join(path_data, "df_train.parquet"),
+                                        path="parquet", split="all")
+        elif split == "test":
+            self.dataset = load_dataset(data_files=os.path.join(path_data, "df_test.parquet"),
+                                        path="parquet", split="all")
+        elif (not split) or (split == "all"):
+            self.dataset = load_dataset(data_files=os.path.join(path_data, "df.parquet"),
+                                        path="parquet", split="all")
+        else:
+            raise ValueError
     
-    
-    
+    def __len__(self):
+        return len(self.dataset)
+
+    def __getitem__(self, i):
+        sent1 = self.dataset[i]["a"]
+        sent2 = self.dataset[i]["b"]
+        label = self.dataset[i]["label"]
+        return sent1, sent2, label
+
+df.to_parquet(os.path.join(path_data, "df.parquet"), index=False)
+data_set = Dataset(split="all")
