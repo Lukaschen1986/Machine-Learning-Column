@@ -9,7 +9,7 @@ LLM类是设计用于与LLMs进行接口交互的类。有许多LLM提供商（O
 """
 import os
 import torch as th
-from transformers import (AutoTokenizer, AutoModelForCausalLM, AutoModelForSeq2SeqLM, 
+from transformers import (AutoTokenizer, AutoModel, AutoModelForCausalLM, AutoModelForSeq2SeqLM, 
                           T5Tokenizer, T5ForConditionalGeneration, pipeline)
 from langchain.llms import OpenAI
 from langchain import (HuggingFaceHub, PromptTemplate, LLMChain)
@@ -40,14 +40,12 @@ as it raised RateLimitError: You exceeded your current quota, please check your 
 # ----------------------------------------------------------------------------------------------------------------
 # 2-使用本地 HuggingFace 模型（根据不同模型的要求定义加载方法）
 checkpoint = "flan-t5-large"  # https://huggingface.co/google/flan-t5-large#usage
-
 tokenizer = T5Tokenizer.from_pretrained(
     pretrained_model_name_or_path=os.path.join(path_model, checkpoint),
     cache_dir=path_model,
     force_download=False,
     local_files_only=True
 )
-
 pretrained = T5ForConditionalGeneration.from_pretrained(
     pretrained_model_name_or_path=os.path.join(path_model, checkpoint),
     cache_dir=path_model,
@@ -57,6 +55,27 @@ pretrained = T5ForConditionalGeneration.from_pretrained(
     device_map="auto"
     )  # GPU
 
+# checkpoint = "chatglm3-6b"
+# tokenizer = AutoTokenizer.from_pretrained(
+#     pretrained_model_name_or_path=os.path.join(path_model, checkpoint),
+#     cache_dir=path_model,
+#     force_download=False,
+#     local_files_only=True,
+#     trust_remote_code=True
+#     )
+# pretrained = AutoModel.from_pretrained(
+#     pretrained_model_name_or_path=os.path.join(path_model, checkpoint),
+#     cache_dir=path_model,
+#     force_download=False,
+#     local_files_only=True,
+#     trust_remote_code=True
+#     ).quantize(8).cuda()
+# model = pretrained.eval()
+# model.chat(tokenizer, "你好", history=[])
+
+# ----------------------------------------------------------------------------------------------------------------
+# text2text-generation
+# text-generation
 pipe = pipeline(
     task="text2text-generation",
     tokenizer=tokenizer,
