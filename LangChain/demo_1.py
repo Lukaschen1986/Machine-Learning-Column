@@ -120,12 +120,17 @@ type(db)  # langchain.vectorstores.faiss.FAISS
 query = "为什么正文大多数用宋体字？"
 query = "字体用多少号更合适？"
 res_similarity = db.similarity_search(query, k=1)
-# res_similarity_score = db.similarity_search_with_score(query, k=1)
 
+# res_similarity_score = db.similarity_search_with_score(query, k=1)
 # embedded_query = embedding_model.embed_query(query)
 # res_similarity = db.similarity_search_by_vector(embedded_query)
 
+# retriever = db.as_retriever()
+# type(retriever)  # langchain.schema.vectorstore.VectorStoreRetriever
+# res_similarity = retriever.get_relevant_documents(query)
+
 context = "\n".join(res.page_content for res in res_similarity)
+
 
 # ----------------------------------------------------------------------------------------------------------------
 # prompts

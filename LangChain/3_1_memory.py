@@ -78,7 +78,7 @@ conversation = ConversationChain(
     memory=ConversationBufferMemory(),
     verbose=True
 )
- 
+
 conversation.predict(input="Hi there!")
 conversation.predict(input="I'm doing well! Just having a conversation with an AI.")
 conversation.predict(input="Tell me about yourself.")
