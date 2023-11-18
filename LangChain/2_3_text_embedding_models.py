@@ -51,7 +51,7 @@ checkpoint = "all-mpnet-base-v2"
 embeddings_model = HuggingFaceEmbeddings(
     model_name=os.path.join(path_model, checkpoint),
     cache_folder=os.path.join(path_model, checkpoint),
-    # model_kwargs={"device": "gpu"},
+    # model_kwargs={"device": "cuda"},
     # encode_kwargs={"normalize_embeddings": False}
     )
 

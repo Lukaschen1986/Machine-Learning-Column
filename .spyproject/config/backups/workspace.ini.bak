@@ -4,7 +4,7 @@ save_data_on_exit = True
 save_history = True
 save_non_project_files = False
 project_type = 'empty-project-type'
-recent_files = ['LangChain\\1_1_llm.py', 'LangChain\\2_2_doc_tranformers.py', 'LangChain\\2_3_text_embedding_models.py', 'LangChain\\2_4_vector_stores.py', 'LangChain\\2_5_retrievers.py', 'LangChain\\2_6_indexing.py', 'LangChain\\1_2_chat.py']
+recent_files = ['LangChain\\demo_1.py', 'LangChain\\1_3_prompts.py']
 
 [main]
 version = 0.2.0
