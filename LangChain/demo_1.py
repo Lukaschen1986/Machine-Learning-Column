@@ -5,7 +5,7 @@ pip install faiss-cpu
 '''
 import os
 import torch as th
-from transformers import (AutoTokenizer, AutoModel)
+from transformers import (AutoTokenizer, AutoModel, AutoModelForCausalLM)
 from langchain.document_loaders import TextLoader
 from langchain.text_splitter import (CharacterTextSplitter, RecursiveCharacterTextSplitter)
 from langchain.embeddings import HuggingFaceEmbeddings
@@ -41,10 +41,25 @@ pretrained = AutoModel.from_pretrained(
     force_download=False,
     local_files_only=True,
     trust_remote_code=True
-    ).quantize(4).cuda()
+    ).cuda()
 '''
 th.cuda.init()
-.half.cuda()
+.half().cuda()
+'''
+
+# checkpoint = "Qwen-7B-Chat"  # https://huggingface.co/Qwen/Qwen-7B-Chat
+
+# pretrained = AutoModelForCausalLM.from_pretrained(
+#     pretrained_model_name_or_path=os.path.join(path_model, checkpoint),
+#     cache_dir=path_model,
+#     force_download=False,
+#     local_files_only=True,
+#     trust_remote_code=True
+#     ).half().cuda()
+'''
+pip install einops transformers_stream_generator
+einops==0.7.0
+transformers_stream_generator==0.0.4
 '''
 
 # CPU
@@ -57,8 +72,13 @@ th.cuda.init()
 #     ).float()
 
 model = pretrained.eval()
-# response, history = model.chat(tokenizer, query="你好", history=[])
-# response, history = model.chat(tokenizer, query="你能为我做什么？", history=history)
+response, history = model.chat(tokenizer, query="今天是星期六，后天是星期几？", history=[])
+
+dct_system_info = {"role": "system",
+                   "content": "你是一个资深导游，擅长为用户制定专业的旅游出行计划。"}
+response, history = model.chat(tokenizer, query="你好", history=[dct_system_info])
+response, history = model.chat(tokenizer, query="我想去日本，请给我规划一个7天的行程。", history=history)
+response, history = model.chat(tokenizer, query="那德国呢？", history=history)
 
 # ----------------------------------------------------------------------------------------------------------------
 # doc_loaders
