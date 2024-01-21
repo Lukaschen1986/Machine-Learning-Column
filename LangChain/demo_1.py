@@ -24,7 +24,29 @@ path_model = os.path.join(os.path.dirname(path_project), "model")
 
 # ----------------------------------------------------------------------------------------------------------------
 # LLM
-checkpoint = "chatglm3-6b"  # https://huggingface.co/THUDM/chatglm3-6b
+# checkpoint = "chatglm3-6b"  # https://huggingface.co/THUDM/chatglm3-6b
+
+# tokenizer = AutoTokenizer.from_pretrained(
+#     pretrained_model_name_or_path=os.path.join(path_model, checkpoint),
+#     cache_dir=path_model,
+#     force_download=False,
+#     local_files_only=True,
+#     trust_remote_code=True
+#     )
+
+# pretrained = AutoModel.from_pretrained(
+#     pretrained_model_name_or_path=os.path.join(path_model, checkpoint),
+#     cache_dir=path_model,
+#     force_download=False,
+#     local_files_only=True,
+#     trust_remote_code=True
+#     ).cuda()
+'''
+th.cuda.init()
+.half().cuda()
+'''
+
+checkpoint = "Qwen-7B-Chat"  # https://huggingface.co/Qwen/Qwen-7B-Chat
 
 tokenizer = AutoTokenizer.from_pretrained(
     pretrained_model_name_or_path=os.path.join(path_model, checkpoint),
@@ -34,45 +56,44 @@ tokenizer = AutoTokenizer.from_pretrained(
     trust_remote_code=True
     )
 
-# GPU
-pretrained = AutoModel.from_pretrained(
+model = AutoModelForCausalLM.from_pretrained(
     pretrained_model_name_or_path=os.path.join(path_model, checkpoint),
     cache_dir=path_model,
     force_download=False,
     local_files_only=True,
-    trust_remote_code=True
-    ).cuda()
-'''
-th.cuda.init()
-.half().cuda()
-'''
+    trust_remote_code=True,
+    device_map="auto",
+    bf16=True
+    ).eval()
 
-# checkpoint = "Qwen-7B-Chat"  # https://huggingface.co/Qwen/Qwen-7B-Chat
-
-# pretrained = AutoModelForCausalLM.from_pretrained(
+# model = AutoModelForCausalLM.from_pretrained(
 #     pretrained_model_name_or_path=os.path.join(path_model, checkpoint),
 #     cache_dir=path_model,
 #     force_download=False,
 #     local_files_only=True,
-#     trust_remote_code=True
-#     ).half().cuda()
+#     trust_remote_code=True,
+#     device_map="auto"
+#     ).eval()
+
+# model = AutoModelForCausalLM.from_pretrained(
+#     pretrained_model_name_or_path=os.path.join(path_model, checkpoint),
+#     cache_dir=path_model,
+#     force_download=False,
+#     local_files_only=True,
+#     trust_remote_code=True,
+#     torch_dtype=th.bfloat16
+#     ).eval()
+
 '''
 pip install einops transformers_stream_generator
 einops==0.7.0
 transformers_stream_generator==0.0.4
+
+load_in_8bit=True
+torch_dtype=torch.bfloat16
 '''
 
-# CPU
-# pretrained = AutoModel.from_pretrained(
-#     pretrained_model_name_or_path=os.path.join(path_model, checkpoint),
-#     cache_dir=path_model,
-#     force_download=False,
-#     local_files_only=True,
-#     trust_remote_code=True
-#     ).float()
-
-model = pretrained.eval()
-response, history = model.chat(tokenizer, query="今天是星期六，后天是星期几？", history=[])
+response, history = model.chat(tokenizer, query="今天是星期六，后天是星期几？", history=[], temperature=0.01)
 
 dct_system_info = {"role": "system",
                    "content": "你是一个资深导游，擅长为用户制定专业的旅游出行计划。"}
