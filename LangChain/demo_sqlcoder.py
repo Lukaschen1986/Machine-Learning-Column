@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-pip install torch transformers bitsandbytes accelerate
+pip install torch transformers==4.36.2 bitsandbytes accelerate
 """
 import os
 import torch as th
@@ -35,35 +35,39 @@ model = AutoModelForCausalLM.from_pretrained(
     local_files_only=True,
     trust_remote_code=True,
     device_map="auto",
-    torch_dtype=th.bfloat16,
+    # torch_dtype=th.bfloat16,
     # load_in_4bit=True,
     # load_in_8bit=True,
     # use_cache=True
     )
 
-checkpoint = "chatglm3-6b"  # https://huggingface.co/THUDM/chatglm3-6b
-tokenizer = AutoTokenizer.from_pretrained(
-    pretrained_model_name_or_path=os.path.join(path_model, checkpoint),
-    cache_dir=path_model,
-    force_download=False,
-    local_files_only=True,
-    trust_remote_code=True
-    )
-pretrained = AutoModel.from_pretrained(
-    pretrained_model_name_or_path=os.path.join(path_model, checkpoint),
-    cache_dir=path_model,
-    force_download=False,
-    local_files_only=True,
-    trust_remote_code=True,
-    torch_dtype=th.bfloat16,
-    ).cuda()
-model = pretrained.eval()
+# checkpoint = "chatglm3-6b"  # https://huggingface.co/THUDM/chatglm3-6b
+# tokenizer = AutoTokenizer.from_pretrained(
+#     pretrained_model_name_or_path=os.path.join(path_model, checkpoint),
+#     cache_dir=path_model,
+#     force_download=False,
+#     local_files_only=True,
+#     trust_remote_code=True
+#     )
+# pretrained = AutoModel.from_pretrained(
+#     pretrained_model_name_or_path=os.path.join(path_model, checkpoint),
+#     cache_dir=path_model,
+#     force_download=False,
+#     local_files_only=True,
+#     trust_remote_code=True,
+#     torch_dtype=th.bfloat16,
+#     ).cuda()
+# model = pretrained.eval()
 
 # ----------------------------------------------------------------------------------------------------------------
 # question
 question = (
     "What products has the biggest fall in sales in 2022 compared to 2021? "
     "Give me the product name, the sales amount in both years, and the difference."
+    )
+
+question = (
+    "What is the average price of all the products?"
     )
 
 # ----------------------------------------------------------------------------------------------------------------
@@ -138,6 +142,7 @@ generated_ids = model.generate(
     num_beams=5
 )
 outputs = tokenizer.batch_decode(generated_ids, skip_special_tokens=True)
+print(outputs)
 
 th.cuda.empty_cache()
 # empty cache so that you do generate more results w/o memory crashing
@@ -147,10 +152,36 @@ th.cuda.empty_cache()
 print(outputs[0].split("```sql")[-1].split("```")[0].split(";")[0].strip() + ";")
 
 
-response, history = model.chat(
-    tokenizer, 
-    query=prompt_format, 
-    history=[], 
-    # temperature=0.01
-    )
-print(response)
+# response, history = model.chat(
+#     tokenizer, 
+#     query=prompt_format, 
+#     history=[], 
+#     # temperature=0.01
+#     )
+# print(response)
+
+'''
+WITH sales_2021 AS (
+  SELECT sales.product_id,
+         sum(sales.quantity) AS sales_2021
+  FROM   sales
+  WHERE  sales.sale_date >= '2021-01-01'
+     AND sales.sale_date <= '2021-12-31'
+  GROUP BY sales.product_id
+), sales_2022 AS (
+  SELECT sales.product_id,
+         sum(sales.quantity) AS sales_2022
+  FROM   sales
+  WHERE  sales.sale_date >= '2022-01-01'
+     AND sales.sale_date <= '2022-12-31'
+  GROUP BY sales.product_id
+)
+SELECT products.name,
+       sales_2021.sales_2021,
+       sales_2022.sales_2022,
+       sales_2022.sales_2022 - sales_2021.sales_2021 AS difference
+FROM   products
+    LEFT JOIN sales_2021 ON products.product_id = sales_2021.product_id
+    LEFT JOIN sales_2022 ON products.product_id = sales_2022.product_id
+ORDER BY difference DESC NULLS LAST;
+'''
