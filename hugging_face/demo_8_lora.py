@@ -63,7 +63,7 @@ model_lora.model_parallel = True
 model_lora.print_trainable_parameters()
 
 # ----------------------------------------------------------------------------------------------------------------
-# train
+# 使用 torchkeras 的 KerasModel
 opti = optim.AdamW(params=model_lora.parameters(), lr=0.01, betas=(0.9, 0.999), eps=10**-8, weight_decay=0.01)
 estimator = KerasModel(
     net=model_lora,
@@ -72,6 +72,7 @@ estimator = KerasModel(
     )
 ckpt_path = os.path.join(path_model, "model_lora.bin")
 
+# train
 estimator.fit(
     train_data=,  # 配置训练数据
     val_data=, # 配置验证数据
@@ -89,7 +90,7 @@ model_lora.save_pretrained(save_directory=os.path.join(path_model, "model_lora.b
                            max_shard_size="10G")
 
 # ----------------------------------------------------------------------------------------------------------------
-# 使用 huggingFace trainer 进行 train
+# 使用 transformers 的 trainer
 # https://huggingface.co/learn/nlp-course/chapter3/3?fw=pt
 from datasets import load_dataset
 from transformers import AutoTokenizer, DataCollatorWithPadding
@@ -99,8 +100,10 @@ from transformers import Trainer
 import numpy as np
 import evaluate
 
-
+# raw_datasets
 raw_datasets = load_dataset("glue", "mrpc")
+
+# tokenizer
 checkpoint = "bert-base-uncased"
 tokenizer = AutoTokenizer.from_pretrained(checkpoint)
 
@@ -110,31 +113,43 @@ def tokenize_function(example):
 tokenized_datasets = raw_datasets.map(tokenize_function, batched=True)
 data_collator = DataCollatorWithPadding(tokenizer=tokenizer)
 
-training_args = TrainingArguments("test-trainer", evaluation_strategy="epoch")  # 具体查看参数详解
+# pretrained
 model = AutoModelForSequenceClassification.from_pretrained(checkpoint, num_labels=2)
+print(f"参数总量 = {sum(para.nelement() for para in model.parameters())}")
 
+# metrics
 def compute_metrics(eval_preds):
     metric = evaluate.load("glue", "mrpc")
     logits, labels = eval_preds
     predictions = np.argmax(logits, axis=-1)
     return metric.compute(predictions=predictions, references=labels)
 
+# init args: https://blog.csdn.net/duzm200542901104/article/details/132762582
+training_args = TrainingArguments("test-trainer", evaluation_strategy="epoch")  # 具体查看参数详解
+
+# train
 estimator = Trainer(
-    model,
-    training_args,
-    train_dataset=tokenized_datasets["train"],
-    eval_dataset=tokenized_datasets["validation"],
     data_collator=data_collator,
     tokenizer=tokenizer,
+    model=model,
+    args=training_args,
+    train_dataset=tokenized_datasets["train"],
+    eval_dataset=tokenized_datasets["validation"],
     compute_metrics=compute_metrics
 )
 estimator.train()
 
+# valid
 predictions = estimator.predict(tokenized_datasets["validation"])
 print(predictions.predictions.shape, predictions.label_ids.shape)
 
+preds = np.argmax(predictions.predictions, axis=-1)
 metric = evaluate.load("glue", "mrpc")
 metric.compute(predictions=preds, references=predictions.label_ids)
 
+# save para
+estimator.save_model(output_dir="...")
 
-
+# load para
+model.load_state_dict(th.load("..."))
+model.eval()

@@ -4,7 +4,7 @@ save_data_on_exit = True
 save_history = True
 save_non_project_files = False
 project_type = 'empty-project-type'
-recent_files = ['LangChain\\demo_1.py', 'LangChain\\demo_sqlcoder.py']
+recent_files = ['LangChain\\demo_1.py', 'LangChain\\demo_sqlcoder.py', 'hugging_face\\demo_text2img.py', 'hugging_face\\demo_6_gpt.py', 'hugging_face\\demo_4_model.py', 'hugging_face\\demo_8_lora.py']
 
 [main]
 version = 0.2.0
