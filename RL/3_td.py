@@ -35,7 +35,7 @@ print('目标位置 = {}'.format(env.unwrapped.locs[destidx]))
 env.step(0)
 
 # ----------------------------------------------------------------------------------------------------------------
-# SARSA
+# SARSA - 保守
 class SARSA(object):
     def __init__(self, env, gamma=0.9, learning_rate=0.2, eps=0.01):
         self.gamma = gamma
@@ -103,7 +103,7 @@ print('平均回合奖励 = {} / {} = {}'.format(sum(lst_total_r), len(lst_total
 arr_pi = np.argmax(agent.arr_q, axis=1)
 
 # ----------------------------------------------------------------------------------------------------------------
-# Q-Learning
+# Q-Learning - 激进（贪心）
 class QLearning(object):
     def __init__(self, env, gamma=0.9, learning_rate=0.1, eps=0.01):
         self.gamma = gamma
@@ -167,7 +167,7 @@ print('平均回合奖励 = {} / {} = {}'.format(sum(lst_total_r), len(lst_total
 arr_pi = np.argmax(agent.arr_q, axis=1)
 
 # ----------------------------------------------------------------------------------------------------------------
-# 期望 SARSA
+# 期望 SARSA - 折中
 class ExpectedSARSA(object):
     def __init__(self, env, gamma=0.9, learning_rate=0.1, eps=0.01):
         self.gamma = gamma

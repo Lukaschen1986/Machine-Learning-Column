@@ -84,17 +84,17 @@ eps = 10**-8
 
 def policy_evaluation(arr_pi):
     for i in range(n_iters):
-        prev_arr_v = copy.deepcopy(arr_v)
+        curr_arr_v = copy.deepcopy(arr_v)  # 当前的价值量
         
-        # 遍历状态索引（S = s）
+        # 遍历状态空间（S = s）
         for s in range(n_states):
             a = arr_pi[s]  # 获取确定性策略
             v = 0
             for (prob, next_s, r, flag) in env.P[s][a]:  # env.P为状态转移矩阵；prob为动态特性
-                v += prob * (r + gamma * prev_arr_v[next_s])  # 1.2-对应v(s)的积分公式
+                v += prob * (r + gamma * curr_arr_v[next_s])  # 1.2-对应v(s)的积分公式（红字）
             arr_v[s] = v  # 1.2-贝尔曼期望方程
         
-        if np.max(np.abs(prev_arr_v - arr_v)) < eps:
+        if np.max(np.abs(curr_arr_v - arr_v)) < eps:
             break
     
     return arr_v
@@ -102,14 +102,14 @@ def policy_evaluation(arr_pi):
 # ----------------------------------------------------------------------------------------------------------------
 # 策略迭代：策略改进（q -> pi'）
 def policy_update(arr_v):
-    # 遍历状态索引（S = s）
+    # 遍历状态空间（S = s）
     for s in range(n_states):
-        # 遍历动作索引（A = a）
+        # 遍历动作空间（A = a）
         for a in range(n_actions):
             for (prob, next_s, r, flag) in env.P[s][a]:
                 arr_q[s, a] += prob * (r + gamma * arr_v[next_s])  # 1.3-对应q(s, a)的积分公式
     
-    arr_pi = np.argmax(arr_q, axis=1)  # 2.4-贪心策略
+    arr_pi = np.argmax(arr_q, axis=1)  # 2.4-贪心策略，贝尔曼最优方程
     return arr_pi
 
 # ----------------------------------------------------------------------------------------------------------------
