@@ -103,22 +103,21 @@ config_bnb = BitsAndBytesConfig(
     bnb_4bit_compute_dtype=th.bfloat16
     )
 
-pretrained = AutoModelForCausalLM.from_pretrained(
+model_base = AutoModelForCausalLM.from_pretrained(
     pretrained_model_name_or_path=os.path.join(path_model, checkpoint),
     cache_dir=path_model,
     force_download=False,
     local_files_only=True,
     trust_remote_code=True,
-    device_map=device,
+    device_map="auto",
     torch_dtype=th.bfloat16,
     # quantization_config=config_bnb
     )
-model_L1 = pretrained.eval()
 
-for param in model_L1.parameters():
+for param in model_base.parameters():
     param.requires_grad_(False)
 
-for i, (name, parm) in enumerate(model_L1.named_parameters()):
+for i, (name, parm) in enumerate(model_base.named_parameters()):
     print(f"{i}  name: {name};  shape: {parm.shape};  dtype: {parm.dtype};  device: {parm.device}")
 '''
 0  name: model.decoder.embed_tokens.weight;  shape: torch.Size([50272, 512]);  dtype: torch.bfloat16;  device: cuda:0
@@ -130,10 +129,10 @@ for i, (name, parm) in enumerate(model_L1.named_parameters()):
 387  name: model.decoder.layers.23.final_layer_norm.bias;  shape: torch.Size([1024]);  dtype: torch.bfloat16;  device: cuda:0
 '''
 
-print(model_L1)
+print(model_base)
 
 # 非必须
-model_L1.resize_token_embeddings(len(tokenizer))  # Embedding(50265, 512)
+model_base.resize_token_embeddings(len(tokenizer))  # Embedding(50265, 512)
 
 # ----------------------------------------------------------------------------------------------------------------
 # LoRA
@@ -147,20 +146,20 @@ config_lora = LoraConfig(
     task_type=TaskType.CAUSAL_LM
     )
 
-model_L2 = prepare_model_for_int8_training(model_L1)
-model_L2 = get_peft_model(model=model_L1, peft_config=config_lora)  # windows 环境：https://github.com/jllllll/bitsandbytes-windows-webui/tree/wheels
-print(model_L2)
+# model_base = prepare_model_for_int8_training(model_base)
+model_lora = get_peft_model(model=model_base, peft_config=config_lora)  # windows 环境：https://github.com/jllllll/bitsandbytes-windows-webui/tree/wheels
+print(model_lora)
 
-# model_L2.is_parallelizable = True
-# model_L2.model_parallel = True
+# model_lora.is_parallelizable = True
+# model_lora.model_parallel = True
 
 # print_trainable_parameters - 1
-model_L2.print_trainable_parameters()
+model_lora.print_trainable_parameters()
 
 # print_trainable_parameters - 2
 trainable_params = 0
 all_params = 0
-for (_, param) in model_L2.named_parameters():
+for (_, param) in model_lora.named_parameters():
     if param.requires_grad:
         trainable_params += param.numel()
     all_params += param.numel()
@@ -171,7 +170,7 @@ print(f"trainable params: {trainable_params} || all params: {all_params} || trai
 # SFT
 # train
 args_train = TrainingArguments(
-    output_dir=os.path.join(path_model, "model_L2"),
+    output_dir=os.path.join(path_model, "model_sft"),
     num_train_epochs=1,
     per_device_train_batch_size=8,
     per_device_eval_batch_size=8,
@@ -190,8 +189,8 @@ args_train = TrainingArguments(
 
 collate_fn = DataCollatorForLanguageModeling(tokenizer, mlm=False)  # 或自定义 collate_fn，参见 demo_4_model.py
 
-estimator = SFTTrainer(
-    model=model_L2,
+trainer = SFTTrainer(
+    model=model_lora,
     tokenizer=tokenizer,
     args=args_train,
     peft_config=config_lora,
@@ -204,23 +203,26 @@ estimator = SFTTrainer(
     # compute_metrics=,
     )
 
-# model_L2.config.use_cache = False
-estimator.train()
+# model_lora.config.use_cache = False
+trainer.train()
+trainer.evaluate()
 
 # valid
-predictions = estimator.predict(test_dataset=)
+predictions = trainer.predict(test_dataset=)
 print(predictions.predictions.shape, predictions.label_ids.shape)
 
 preds = np.argmax(predictions.predictions, axis=-1)
 metric = evaluate.load("glue", "mrpc")
 metric.compute(predictions=preds, references=predictions.label_ids)
 
-# save para
-estimator.save_model(output_dir="...")
+# save
+trainer.save_model(os.path.join(path_model, "model_sft.bin"))
 
-# load para
-model.load_state_dict(th.load("..."))
-model.eval()
+# load
+model_sft = th.load(os.path.join(path_model, "model_sft.bin"))
+
+# model_sft.load_state_dict(th.load("..."))
+# model_sft.eval()
 
 
 
