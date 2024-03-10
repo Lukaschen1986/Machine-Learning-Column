@@ -2,13 +2,15 @@
 """
 https://github.com/huggingface/trl
 https://huggingface.co/docs/trl/sft_trainer
-pip install -U datasets transformers accelerate peft trl --user
+pip install -U datasets accelerate peft trl --user
 pip install -U bitsandbytes --user
+pip install transformers==4.37.2 --user
 https://github.com/jllllll/bitsandbytes-windows-webui/tree/wheels
 """
 import os
 import sys
 import numpy as np
+import pandas as pd
 import torch as th
 from datasets import (load_dataset, load_from_disk, Dataset)
 from transformers import (AutoTokenizer, AutoModel, AutoModelForCausalLM, BitsAndBytesConfig,
@@ -25,9 +27,10 @@ print(device)
 path_project = "C:/my_project/MyGit/Machine-Learning-Column/hugging_face"
 path_data = os.path.join(os.path.dirname(path_project), "data")
 path_model = os.path.join(os.path.dirname(path_project), "model")
+path_log = os.path.join(os.path.dirname(path_project), "log")
 
 # ----------------------------------------------------------------------------------------------------------------
-# load dataset
+# load dataset official
 # https://huggingface.co/datasets/tatsu-lab/alpaca
 dataset_train = load_dataset(
     path="parquet",
@@ -77,11 +80,46 @@ print(dataset_train[5])
 '''
 
 # ----------------------------------------------------------------------------------------------------------------
+# load dataset unofficial
+lst_train = []
+lst_eval = []
+idx_train = 100
+idx_eval = 10
+
+for i in range(idx_train):
+    text = dataset_train[i]["text"]
+    lst_train.append(text)
+
+for i in range(idx_train, idx_train + idx_eval):
+    text = dataset_train[i]["text"]
+    lst_eval.append(text)
+
+dataset_train_2 = pd.DataFrame(data=lst_train, columns=["text"])
+dataset_eval_2 = pd.DataFrame(data=lst_eval, columns=["text"])
+
+dataset_train_2.to_parquet(os.path.join(path_data, "tatsu-lab/alpaca/dataset_train_2.parquet"))
+dataset_eval_2.to_parquet(os.path.join(path_data, "tatsu-lab/alpaca/dataset_eval_2.parquet"))
+
+dataset_train = load_dataset(
+    path="parquet",
+    data_files=os.path.join(path_data, "tatsu-lab/alpaca/dataset_train_2.parquet"),
+    split="all"
+    )
+
+dataset_eval = load_dataset(
+    path="parquet",
+    data_files=os.path.join(path_data, "tatsu-lab/alpaca/dataset_eval_2.parquet"),
+    split="all"
+    )
+
+# ----------------------------------------------------------------------------------------------------------------
 # LLM
 # https://huggingface.co/Salesforce/xgen-7b-8k-base
 # https://huggingface.co/facebook/opt-350m
 # https://huggingface.co/THUDM/chatglm3-6b
-checkpoint = "facebook/opt-350m"
+# checkpoint = "facebook/opt-350m"
+# checkpoint = "gpt2"
+checkpoint = "chatglm3-6b"
 
 tokenizer = AutoTokenizer.from_pretrained(
     pretrained_model_name_or_path=os.path.join(path_model, checkpoint),
@@ -91,16 +129,16 @@ tokenizer = AutoTokenizer.from_pretrained(
     trust_remote_code=True
     )
 
-tokenizer.pad_token  # '<pad>'
-tokenizer.eos_token  # '</s>'
+# tokenizer.pad_token  # '<unk>'
+# tokenizer.eos_token  # '</s>'
 # tokenizer.pad_token = tokenizer.eos_token
-len(tokenizer.get_vocab())  # 50265
+len(tokenizer.get_vocab())  # 64796
 
 config_bnb = BitsAndBytesConfig(
-    load_in_8bit=False,
-    load_in_4bit=False,
-    bnb_4bit_use_double_quant=False,
-    bnb_4bit_compute_dtype=th.bfloat16
+    # load_in_8bit=True,
+    load_in_4bit=True,
+    # bnb_4bit_use_double_quant=False,
+    # bnb_4bit_compute_dtype=th.bfloat16
     )
 
 model_base = AutoModelForCausalLM.from_pretrained(
@@ -110,12 +148,13 @@ model_base = AutoModelForCausalLM.from_pretrained(
     local_files_only=True,
     trust_remote_code=True,
     device_map="auto",
-    torch_dtype=th.bfloat16,
-    # quantization_config=config_bnb
+    # torch_dtype=th.bfloat16,
+    # load_in_4bit=True
+    quantization_config=config_bnb
     )
 
-for param in model_base.parameters():
-    param.requires_grad_(False)
+# for param in model_base.parameters():
+#     param.requires_grad_(False)
 
 for i, (name, parm) in enumerate(model_base.named_parameters()):
     print(f"{i}  name: {name};  shape: {parm.shape};  dtype: {parm.dtype};  device: {parm.device}")
@@ -132,14 +171,14 @@ for i, (name, parm) in enumerate(model_base.named_parameters()):
 print(model_base)
 
 # 非必须
-model_base.resize_token_embeddings(len(tokenizer))  # Embedding(50265, 512)
+# model_base.resize_token_embeddings(len(tokenizer))  # Embedding(50265, 512)
 
 # ----------------------------------------------------------------------------------------------------------------
 # LoRA
 # LoRA: Low-Rank Adaptation of Large Language Models
 # config_lora = LoraConfig(target_modules=["0"], r=8)
 config_lora = LoraConfig(
-    r=8,
+    r=2,
     lora_alpha=16,
     lora_dropout=0.1,
     bias="none",
@@ -159,7 +198,8 @@ model_lora.print_trainable_parameters()
 # print_trainable_parameters - 2
 trainable_params = 0
 all_params = 0
-for (_, param) in model_lora.named_parameters():
+
+for param in model_lora.parameters():
     if param.requires_grad:
         trainable_params += param.numel()
     all_params += param.numel()
@@ -170,24 +210,31 @@ print(f"trainable params: {trainable_params} || all params: {all_params} || trai
 # SFT
 # train
 args_train = TrainingArguments(
-    output_dir=os.path.join(path_model, "model_sft"),
-    num_train_epochs=1,
-    per_device_train_batch_size=8,
-    per_device_eval_batch_size=8,
+    output_dir=os.path.join(path_model, "model_sft"),  # 输出目录
+    num_train_epochs=3,  # 训练轮数  
+    per_device_train_batch_size=4,  # 训练批次大小
+    per_device_eval_batch_size=4,  # 验证批次大小
     gradient_accumulation_steps=1,
     optim="adamw_torch",
-    learning_rate=0.00005,
+    learning_rate=0.001,  # 0.00005
     # weight_decay=0.01,
     warmup_ratio=0.1,
     lr_scheduler_type="linear",
-    evaluation_strategy="epoch",
-    logging_steps=10,
-    # fp16=True,
-    # load_best_model_at_end=True,
+    save_strategy="steps",
+    evaluation_strategy="steps",
+    log_level="info",
+    logging_strategy="steps",
+    logging_steps=10,  # 500
+    eval_steps=10,
+    logging_dir=path_log,
+    report_to="all",
+    load_best_model_at_end=False,
     # push_to_hub=False
     )
+## 遗留：学习曲线打印
 
 collate_fn = DataCollatorForLanguageModeling(tokenizer, mlm=False)  # 或自定义 collate_fn，参见 demo_4_model.py
+# collate_fn = DataCollatorWithPadding(tokenizer)
 
 trainer = SFTTrainer(
     model=model_lora,
@@ -196,36 +243,80 @@ trainer = SFTTrainer(
     peft_config=config_lora,
     data_collator=collate_fn,
     train_dataset=dataset_train,
-    # eval_dataset=,
+    eval_dataset=dataset_eval,
     dataset_text_field="text",
     packing=True,
     max_seq_length=512,
-    # compute_metrics=,
+    # compute_metrics=compute_metrics,
     )
 
+'''
+## compute_metrics
+from sklearn.metrics import accuracy_score, f1_score  
+def compute_metrics(pred):  
+    labels = pred.label_ids  
+    preds = pred.predictions.argmax(-1)  
+    accuracy = accuracy_score(labels, preds)  
+    f1 = f1_score(labels, preds, average='macro')  # 或使用 'micro', 'weighted' 等  
+    return {'accuracy': accuracy, 'f1': f1}
+'''
+
 # model_lora.config.use_cache = False
-trainer.train()
-trainer.evaluate()
+output_train = trainer.train()
+'''
+TrainOutput(global_step=18, training_loss=1.8800998263888888, 
+            metrics={'train_runtime': 2613.6248, 'train_samples_per_second': 0.028, 
+                     'train_steps_per_second': 0.007, 'total_flos': 1322178922414080.0, 
+                     'train_loss': 1.8800998263888888, 'epoch': 3.0})
+'''
+output_eval = trainer.evaluate()
+'''
+{'eval_loss': 1.5322265625,
+ 'eval_runtime': 16.981,
+ 'eval_samples_per_second': 0.059,
+ 'eval_steps_per_second': 0.059,
+ 'epoch': 3.0}
+'''
 
-# valid
-predictions = trainer.predict(test_dataset=)
-print(predictions.predictions.shape, predictions.label_ids.shape)
-
-preds = np.argmax(predictions.predictions, axis=-1)
-metric = evaluate.load("glue", "mrpc")
-metric.compute(predictions=preds, references=predictions.label_ids)
+# test
+# predictions = trainer.predict(test_dataset=)
+# print(predictions.predictions.shape, predictions.label_ids.shape)
+# preds = np.argmax(predictions.predictions, axis=-1)
+# metric = evaluate.load("glue", "mrpc")
+# metric.compute(predictions=preds, references=predictions.label_ids)
 
 # save
-trainer.save_model(os.path.join(path_model, "model_sft.bin"))
+trainer.save_model(output_dir=os.path.join(path_model, "model_sft"))
 
 # load
-model_sft = th.load(os.path.join(path_model, "model_sft.bin"))
+## reload model_base
 
+## load model_sft
+model_sft = PeftModel.from_pretrained(
+    model=model_base, 
+    model_id=os.path.join(path_model, "model_sft"),
+    is_trainable=False
+    )
+model_sft = model_sft.merge_and_unload()
+print(model_sft)
+
+# inference
+query = """Below is an instruction that describes a task. Write a response that appropriately completes the request.
+
+### Instruction:
+Design a database to record employee salaries.
+
+### Response:
+"""
+
+response, history = model_sft.chat(tokenizer, query=query, history=[])
+
+
+# model_sft.save_pretrained(save_directory=os.path.join(path_model, "model_lora"),
+#                           max_shard_size="1GB")
+# model_sft = th.load(os.path.join(path_model, "model_sft"))
 # model_sft.load_state_dict(th.load("..."))
 # model_sft.eval()
-
-
-
 
 
 
