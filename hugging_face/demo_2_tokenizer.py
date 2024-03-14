@@ -6,10 +6,10 @@ import os
 import numpy as np
 import torch as th
 from torch import nn
-from transformers import (pipeline, 
+from transformers import (pipeline,
                           AutoTokenizer, BertTokenizer,
                           AutoModel, BertModel, BertConfig,
-                          AutoModelForSequenceClassification, 
+                          AutoModelForSequenceClassification,
                           AdamW)
 from datasets import (load_dataset, load_from_disk)
 from torchcrf import CRF
@@ -36,8 +36,12 @@ tokenizer = AutoTokenizer.from_pretrained(
     pretrained_model_name_or_path=checkpoint,
     cache_dir=path_model,
     force_download=False,
-    local_files_only=True
+    local_files_only=True,
+    use_fast=True
 )
+
+tokenizer.vocab
+tokenizer.vocab_size
 
 # ----------------------------------------------------------------------------------------------------------------
 # 简单编码
@@ -47,11 +51,14 @@ tokens = tokenizer.tokenize(text=raw_inputs)
 '''
 ['using', 'a', 'transform', '##er', 'network', 'is', 'simple']
 '''
+tokens = tokenizer.tokenize(text=raw_inputs, return_offsets_mapping=True)
+tokens.word_ids()
 
 ids = tokenizer.convert_tokens_to_ids(tokens)
 '''
 [2478, 1037, 10938, 2121, 2897, 2003, 3722]
 '''
+str_ = tokenizer.convert_tokens_to_string(tokens)
 
 tokens = tokenizer.convert_ids_to_tokens(ids)
 '''
@@ -59,6 +66,7 @@ tokens = tokenizer.convert_ids_to_tokens(ids)
 '''
 
 raw_inputs = tokenizer.decode(token_ids=ids)
+raw_inputs = tokenizer.decode(token_ids=ids, skip_special_tokens=True)
 '''
 'using a transformer network is simple'
 
@@ -74,11 +82,11 @@ raw_inputs = [
 ]
 
 inputs = tokenizer(
-    text=raw_inputs, 
+    text=raw_inputs,
     padding=True,  # False==do_not_pad, True==longest, max_length
-    truncation=True, 
+    truncation=True,
     return_tensors="pt"
-    )
+)
 
 tokenizer.decode(inputs["input_ids"][1])
 '''
@@ -93,9 +101,9 @@ inputs = tokenizer.encode(
     max_length=30,
     padding="max_length",
     truncation=True,
-    add_special_tokens=True,
+    add_special_tokens=True,  # 例如BERT的特殊分隔符,[CLS],[SEP]
     return_tensors=None
-    )
+)
 
 inputs = tokenizer.encode_plus(
     text=raw_inputs[0],
@@ -109,7 +117,7 @@ inputs = tokenizer.encode_plus(
     return_attention_mask=True,
     return_special_tokens_mask=True,
     return_length=True
-    )
+)
 
 inputs = tokenizer.batch_encode_plus(
     batch_text_or_text_pairs=[raw_inputs[0], raw_inputs[1]],  # [(sents[0], sents[1]), (sents[2], sents[3])]
@@ -123,7 +131,7 @@ inputs = tokenizer.batch_encode_plus(
     return_special_tokens_mask=True,
     return_length=True,
     is_split_into_words=True
-    )
+)
 
 dct = tokenizer.get_vocab()
 tokenizer.decode(inputs["input_ids"][0])
@@ -135,7 +143,7 @@ pretrained = AutoModel.from_pretrained(
     cache_dir=path_model,
     force_download=False,
     local_files_only=False
-    )
+)
 
 outputs = pretrained(**inputs)
 print(outputs.last_hidden_state.shape)  # torch.Size([2, 16, 768])
@@ -146,10 +154,8 @@ pretrained = AutoModelForSequenceClassification.from_pretrained(
     cache_dir=path_model,
     force_download=False,
     local_files_only=False
-    )
+)
 
 outputs = pretrained(**inputs)
 print(outputs.logits.shape)  # torch.Size([2, 2])
 # print(outputs[0].shape)
-
-

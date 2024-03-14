@@ -2,8 +2,7 @@
 """
 https://github.com/huggingface/trl
 https://huggingface.co/docs/trl/sft_trainer
-pip install -U datasets accelerate peft trl --user
-pip install -U bitsandbytes --user
+pip install -U datasets accelerate peft trl tensorboard bitsandbytes langchain sentencepiece --user
 pip install transformers==4.37.2 --user
 https://github.com/jllllll/bitsandbytes-windows-webui/tree/wheels
 """
@@ -12,9 +11,11 @@ import sys
 import numpy as np
 import pandas as pd
 import torch as th
+from torch.utils.tensorboard import SummaryWriter
 from datasets import (load_dataset, load_from_disk, Dataset)
 from transformers import (AutoTokenizer, AutoModel, AutoModelForCausalLM, BitsAndBytesConfig,
                           TrainingArguments, DataCollatorWithPadding, DataCollatorForLanguageModeling)
+from transformers.integrations import TensorBoardCallback
 from peft import (LoraConfig, get_peft_model, PeftModel, TaskType, prepare_model_for_int8_training)
 from trl import SFTTrainer
 
@@ -36,7 +37,7 @@ dataset_train = load_dataset(
     path="parquet",
     data_files=os.path.join(path_data, "tatsu-lab/alpaca/train-00000-of-00001-a09b74b3ef9c3b56.parquet"),
     split="train"
-    )
+)
 print(dataset_train)
 '''
 Dataset({
@@ -104,13 +105,13 @@ dataset_train = load_dataset(
     path="parquet",
     data_files=os.path.join(path_data, "tatsu-lab/alpaca/dataset_train_2.parquet"),
     split="all"
-    )
+)
 
 dataset_eval = load_dataset(
     path="parquet",
     data_files=os.path.join(path_data, "tatsu-lab/alpaca/dataset_eval_2.parquet"),
     split="all"
-    )
+)
 
 # ----------------------------------------------------------------------------------------------------------------
 # LLM
@@ -127,7 +128,7 @@ tokenizer = AutoTokenizer.from_pretrained(
     force_download=False,
     local_files_only=True,
     trust_remote_code=True
-    )
+)
 
 # tokenizer.pad_token  # '<unk>'
 # tokenizer.eos_token  # '</s>'
@@ -137,9 +138,9 @@ len(tokenizer.get_vocab())  # 64796
 config_bnb = BitsAndBytesConfig(
     # load_in_8bit=True,
     load_in_4bit=True,
-    # bnb_4bit_use_double_quant=False,
+    # bnb_4bit_use_double_quant=True,
     # bnb_4bit_compute_dtype=th.bfloat16
-    )
+)
 
 model_base = AutoModelForCausalLM.from_pretrained(
     pretrained_model_name_or_path=os.path.join(path_model, checkpoint),
@@ -151,10 +152,14 @@ model_base = AutoModelForCausalLM.from_pretrained(
     # torch_dtype=th.bfloat16,
     # load_in_4bit=True
     quantization_config=config_bnb
-    )
+)
 
 # for param in model_base.parameters():
 #     param.requires_grad_(False)
+
+# model_base.is_parallelizable = True
+# model_base.model_parallel = True
+model_base.config.use_cache = False
 
 for i, (name, parm) in enumerate(model_base.named_parameters()):
     print(f"{i}  name: {name};  shape: {parm.shape};  dtype: {parm.dtype};  device: {parm.device}")
@@ -170,8 +175,25 @@ for i, (name, parm) in enumerate(model_base.named_parameters()):
 
 print(model_base)
 
-# 非必须
-# model_base.resize_token_embeddings(len(tokenizer))  # Embedding(50265, 512)
+# check embedding_size
+embedding_size = model_base.get_input_embeddings().weight.shape[0]
+if len(tokenizer) > embedding_size:
+    model_base.resize_token_embeddings(len(tokenizer))
+
+# ----------------------------------------------------------------------------------------------------------------
+# model config
+config_model = {
+    "rank": 8,
+    "lora_alpha": 32,
+    "lora_dropout": 0.1,
+    "use_rslora": True,
+    "epochs": 10,
+    "batch_size": 4,
+    "gradient_steps": 1,
+    "learning_rate": 0.001,
+    "weight_decay": 0.01,
+    "max_seq_lenght": 512
+}
 
 # ----------------------------------------------------------------------------------------------------------------
 # LoRA
@@ -183,10 +205,11 @@ config_lora = LoraConfig(
     lora_dropout=0.1,
     bias="none",
     task_type=TaskType.CAUSAL_LM
-    )
+)
 
 # model_base = prepare_model_for_int8_training(model_base)
-model_lora = get_peft_model(model=model_base, peft_config=config_lora)  # windows 环境：https://github.com/jllllll/bitsandbytes-windows-webui/tree/wheels
+# windows 环境：https://github.com/jllllll/bitsandbytes-windows-webui/tree/wheels
+model_lora = get_peft_model(model=model_base, peft_config=config_lora)
 print(model_lora)
 
 # model_lora.is_parallelizable = True
@@ -204,14 +227,15 @@ for param in model_lora.parameters():
         trainable_params += param.numel()
     all_params += param.numel()
 
-print(f"trainable params: {trainable_params} || all params: {all_params} || trainable%: {100 * trainable_params / all_params:.4f}")
+print(
+    f"trainable params: {trainable_params} || all params: {all_params} || trainable%: {100 * trainable_params / all_params:.4f}")
 
 # ----------------------------------------------------------------------------------------------------------------
 # SFT
 # train
 args_train = TrainingArguments(
     output_dir=os.path.join(path_model, "model_sft"),  # 输出目录
-    num_train_epochs=3,  # 训练轮数  
+    num_train_epochs=3,  # 训练轮数
     per_device_train_batch_size=4,  # 训练批次大小
     per_device_eval_batch_size=4,  # 验证批次大小
     gradient_accumulation_steps=1,
@@ -230,11 +254,12 @@ args_train = TrainingArguments(
     report_to="all",
     load_best_model_at_end=False,
     # push_to_hub=False
-    )
-## 遗留：学习曲线打印
+)
+# 遗留：学习曲线打印
 
 collate_fn = DataCollatorForLanguageModeling(tokenizer, mlm=False)  # 或自定义 collate_fn，参见 demo_4_model.py
 # collate_fn = DataCollatorWithPadding(tokenizer)
+writer = SummaryWriter()
 
 trainer = SFTTrainer(
     model=model_lora,
@@ -247,8 +272,9 @@ trainer = SFTTrainer(
     dataset_text_field="text",
     packing=True,
     max_seq_length=512,
+    callbacks=[TensorBoardCallback(writer)]
     # compute_metrics=compute_metrics,
-    )
+)
 
 '''
 ## compute_metrics
@@ -263,6 +289,7 @@ def compute_metrics(pred):
 
 # model_lora.config.use_cache = False
 output_train = trainer.train()
+metrics = output_train.metrics
 '''
 TrainOutput(global_step=18, training_loss=1.8800998263888888, 
             metrics={'train_runtime': 2613.6248, 'train_samples_per_second': 0.028, 
@@ -289,14 +316,14 @@ output_eval = trainer.evaluate()
 trainer.save_model(output_dir=os.path.join(path_model, "model_sft"))
 
 # load
-## reload model_base
+# reload model_base
 
-## load model_sft
+# load model_sft
 model_sft = PeftModel.from_pretrained(
-    model=model_base, 
+    model=model_base,
     model_id=os.path.join(path_model, "model_sft"),
     is_trainable=False
-    )
+)
 model_sft = model_sft.merge_and_unload()
 print(model_sft)
 
@@ -317,6 +344,3 @@ response, history = model_sft.chat(tokenizer, query=query, history=[])
 # model_sft = th.load(os.path.join(path_model, "model_sft"))
 # model_sft.load_state_dict(th.load("..."))
 # model_sft.eval()
-
-
-
