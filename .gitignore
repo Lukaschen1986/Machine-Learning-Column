@@ -4,6 +4,8 @@ model/
 */model/
 *.json
 *.bin
+*.ini
+*.bak
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

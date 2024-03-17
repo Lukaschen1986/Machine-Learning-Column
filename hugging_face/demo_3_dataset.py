@@ -23,25 +23,97 @@ path_model = os.path.join(os.path.dirname(path_project), "model")
 # ----------------------------------------------------------------------------------------------------------------
 # 加载数据
 dataset = load_from_disk(dataset_path=os.path.join(path_data, "peoples_daily_ner"))
+dataset = load_dataset("madao33/new-title-chinese", split="train[10:100]")
+dataset = load_dataset("madao33/new-title-chinese", split="train[:50%]")
+dataset = load_dataset("madao33/new-title-chinese", split=["train[:50%]", "validation[:10%]"])
 
 dataset = load_dataset(
-    path="csv",
+    path="csv",  # (JSON, CSV, Parquet, text, etc.)
     data_files=os.path.join(path_data, "peoples_daily_ner.csv"),
     split="all"
     )
-
-dataset = load_dataset(
-    path="json",
-    data_files=os.path.join(path_data, "peoples_daily_ner.json"),
-    split="all"
-    )
+# dataset = Dataset.from_csv(path_or_paths=os.path.join(path_data, "peoples_daily_ner.csv"), split="all")
+dataset = load_dataset(path="csv", data_dir=path_data, split="all")
 
 features = [...]
-data_set = Dataset.from_pandas(df, features).train_test_split(test_size=0.15, shuffle=True, seed=0)
+data_set = Dataset.from_pandas(df, features)\
+    .train_test_split(test_size=0.15, shuffle=True, seed=0)
 train_set = data_set.get("train")
 
 # ----------------------------------------------------------------------------------------------------------------
-# 定义数据集
+# 数据集基本操作
+print(dataset["train"][0])
+'''
+{'title': '...',
+ 'content': '...'}
+'''
+print(dataset["train"][0:2])
+'''
+{'title': ['...', '...'],
+ 'content': ['...', '...']}
+'''
+print(dataset["train"]["title"][0:2])
+'''
+['...', '...']
+'''
+
+dataset["train"].column_names  # ['title', 'content']
+dataset["train"].features
+'''
+{'title': Value(dtype='string', id=None),
+ 'content': Value(dtype='string', id=None)}
+'''
+
+trainset, validset = dataset.train_test_split(test_size=0.1)
+trainset, validset = dataset.train_test_split(test_size=0.1, stratify_by_column="label", shuffle=True, seed=0) 
+
+dataset["train"].select([0, 1])  # 选取0,1行
+filter_dataset = dataset["train"].filter(lambda example: "中国" in example["title"])
+
+def add_prefix(example):
+    example["title"] = 'Prefix: ' + example["title"]
+    return example
+prefix_dataset = dataset.map(function=add_prefix)
+
+def preprocess_function(example, tokenizer):
+    model_inputs = tokenizer(example["content"], max_length=512, truncation=True)
+    labels = tokenizer(example["title"], max_length=32, truncation=True)
+    # label就是title编码的结果
+    model_inputs["labels"] = labels["input_ids"]
+    return model_inputs
+# processed_dataset = dataset.map(preprocess_function, num_proc=4)
+processed_dataset = dataset.map(preprocess_function, batched=True)
+'''
+DatasetDict({
+    train: Dataset({
+        features: ['title', 'content', 'input_ids', 'token_type_ids', 'attention_mask', 'labels'],
+        num_rows: 5850
+    })
+    validation: Dataset({
+        features: ['title', 'content', 'input_ids', 'token_type_ids', 'attention_mask', 'labels'],
+        num_rows: 1679
+    })
+})
+'''
+processed_dataset = dataset.map(preprocess_function, batched=True, 
+                                remove_columns=dataset["train"].column_names)
+'''
+DatasetDict({
+    train: Dataset({
+        features: ['input_ids', 'token_type_ids', 'attention_mask', 'labels'],
+        num_rows: 5850
+    })
+    validation: Dataset({
+        features: ['input_ids', 'token_type_ids', 'attention_mask', 'labels'],
+        num_rows: 1679
+    })
+})
+'''
+processed_dataset.save_to_disk("./processed_data")
+processed_dataset = load_from_disk("./processed_data")
+
+# ----------------------------------------------------------------------------------------------------------------
+# 自定义数据集
 class Dataset(th.utils.data.Dataset):
     def __init__(self):
         self.dataset = load_dataset(

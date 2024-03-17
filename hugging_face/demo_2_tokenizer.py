@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 '''
 https://huggingface.co/course/zh-CN/chapter2/2?fw=pt
+!git clone "https://huggingface.co/hfl/rbt3"
+!git lfs clone "https://huggingface.co/hfl/rbt3" --include="*.bin"
 '''
 import os
 import numpy as np
@@ -47,23 +49,13 @@ tokenizer.vocab_size
 # 简单编码
 raw_inputs = "Using a Transformer network is simple"
 
-tokens = tokenizer.tokenize(text=raw_inputs)
-'''
-['using', 'a', 'transform', '##er', 'network', 'is', 'simple']
-'''
+tokens = tokenizer.tokenize(text=raw_inputs)  # ['using', 'a', 'transform', '##er', 'network', 'is', 'simple']
 tokens = tokenizer.tokenize(text=raw_inputs, return_offsets_mapping=True)
 tokens.word_ids()
 
-ids = tokenizer.convert_tokens_to_ids(tokens)
-'''
-[2478, 1037, 10938, 2121, 2897, 2003, 3722]
-'''
+ids = tokenizer.convert_tokens_to_ids(tokens)  # [2478, 1037, 10938, 2121, 2897, 2003, 3722]
 str_ = tokenizer.convert_tokens_to_string(tokens)
-
-tokens = tokenizer.convert_ids_to_tokens(ids)
-'''
-['using', 'a', 'transform', '##er', 'network', 'is', 'simple']
-'''
+tokens = tokenizer.convert_ids_to_tokens(ids)  # ['using', 'a', 'transform', '##er', 'network', 'is', 'simple']
 
 raw_inputs = tokenizer.decode(token_ids=ids)
 raw_inputs = tokenizer.decode(token_ids=ids, skip_special_tokens=True)
@@ -147,7 +139,7 @@ pretrained = AutoModel.from_pretrained(
 
 outputs = pretrained(**inputs)
 print(outputs.last_hidden_state.shape)  # torch.Size([2, 16, 768])
-# print(outputs[0].shape)
+print(outputs[0].shape)
 
 pretrained = AutoModelForSequenceClassification.from_pretrained(
     pretrained_model_name_or_path=checkpoint,
@@ -158,4 +150,4 @@ pretrained = AutoModelForSequenceClassification.from_pretrained(
 
 outputs = pretrained(**inputs)
 print(outputs.logits.shape)  # torch.Size([2, 2])
-# print(outputs[0].shape)
+print(outputs[0].shape)

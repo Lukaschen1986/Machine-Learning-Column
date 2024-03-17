@@ -7,12 +7,15 @@ import random
 import numpy as np
 import torch as th
 from torch import nn
+from torch.utils.data import random_split
 from transformers import (pipeline, 
                           AutoTokenizer, BertTokenizer,
                           AutoModel, BertModel, BertConfig,
                           AutoModelForSequenceClassification, 
-                          AdamW)
-from transformers import (DataCollatorWithPadding, default_data_collator)
+                          BertForSequenceClassification,
+                          AdamW, AutoConfig)
+from transformers import (DataCollatorWithPadding, DataCollatorForLanguageModeling,
+                          DataCollatorForSeq2Seq, default_data_collator)
 from datasets import (load_dataset, load_from_disk)
 from torchcrf import CRF
 import torch.optim as optim
@@ -27,24 +30,29 @@ path_model = os.path.join(os.path.dirname(path_project), "model")
 
 # ----------------------------------------------------------------------------------------------------------------
 # 加载预训练模型
-# 从默认配置创建模型会使用随机值对其进行初始化
-config = BertConfig()
-pretrained = BertModel(config)
-
-# 加载已经训练过的Transformers模型
-# checkpoint = "distilbert-base-uncased-finetuned-sst-2-english"
+# 1-从默认配置创建模型会使用随机值对其进行初始化
 checkpoint = "bert-base-chinese"
-# checkpoint = "hfl/rbt6"
-# checkpoint = "hfl/chinese-bert-wwm-ext"
-# checkpoint = "nghuyong/ernie-3.0-base-zh"
-# checkpoint = "nghuyong/ernie-1.0-base-zh"
 
+# config = AutoConfig.from_pretrained(
+#     pretrained_model_name_or_path=os.path.join(path_model, checkpoint),
+#     cache_dir=path_model,
+#     force_download=False,
+#     local_files_only=False
+#     )  # 1
+# config = BertConfig()  # 2
+# pretrained = BertModel(config)
+
+# 2-加载已经训练过的Transformers模型
 pretrained = BertModel.from_pretrained(
-    pretrained_model_name_or_path=checkpoint,
+    pretrained_model_name_or_path=os.path.join(path_model, checkpoint),
     cache_dir=path_model,
     force_download=False,
     local_files_only=False
     )
+print(pretrained)
+print(pretrained.config)
+print(pretrained.config.output_attentions)  # False
+print(pretrained.config.output_hidden_states)  # False
 
 for param in pretrained.parameters():
     param.requires_grad_(False)
@@ -64,10 +72,26 @@ pretrained.save_pretrained(save_directory=os.path.join(path_model, "my_model_dir
 '''
 
 # ----------------------------------------------------------------------------------------------------------------
+# 简单案例：不带Model Head的模型调用
+tokenizer = AutoTokenizer.from_pretrained("rbt3")
+sen = "弱小的我也有大梦想！"
+inputs = tokenizer(sen, return_tensors="pt")
+
+model = AutoModel.from_pretrained("rbt3", output_attentions=True)  # 强制加上 output_attentions=True 输出 attentions
+output = model(**inputs)
+print(output.last_hidden_state.shape())  # torch.Size([1, 12, 768])
+
+# 简单案例：带Model Head的模型调用
+model = AutoModelForSequenceClassification.from_pretrained("rbt3", num_labels=10)
+output = model(**inputs)
+print(output.logits.shape())  # torch.Size([1, 10])
+
+# ----------------------------------------------------------------------------------------------------------------
 # 中文分类
 # 数据集类
 class Dataset(th.utils.data.Dataset):
     def __init__(self):
+        # super(Dataset, self).__init__()
         self.dataset = load_dataset(
             path="csv",
             data_files=os.path.join(path_data, "text_cls.csv"),
@@ -82,6 +106,11 @@ class Dataset(th.utils.data.Dataset):
         label = self.dataset[i]["label"]
         return text, label 
 
+# 划分数据集
+dataset = Dataset()
+trainset, validset = random_split(dataset, lengths=[0.9, 0.1])
+# trainset, validset = dataset.train_test_split(test_size=0.1, stratify_by_column="label") 
+
 # 整理函数
 def collate_fn(dataset):
     texts = [x[0] for x in dataset]
@@ -90,24 +119,27 @@ def collate_fn(dataset):
     
     #编码
     inputs = tokenizer.batch_encode_plus(batch_text_or_text_pairs=texts,
-                                         truncation=True,
-                                         padding="max_length",
-                                         max_length=max_length,
-                                         return_tensors="pt",
-                                         return_length=True)
+                                          truncation=True,
+                                          padding="max_length",
+                                          max_length=max_length,
+                                          return_tensors="pt",
+                                          return_length=True)
 
-    labels = th.LongTensor(labels)
+    labels = th.LongTensor(labels)  # torch.int64
+    # labels = th.Tensor(labels, dtype=th.long)  # torch.int64
     return inputs, labels
+# collate_fn = DataCollatorWithPadding(tokenizer)
 
 # 数据迭代器
-dataset = Dataset()
 loader = th.utils.data.DataLoader(dataset=dataset,
                                   batch_size=16,
-                                  collate_fn=collate_fn,  # 简单: DataCollatorWithPadding(tokenizer)
+                                  collate_fn=collate_fn,
                                   shuffle=True,
                                   drop_last=True)
 
 # 下游模型
+config = {"pretrained": pretrained}
+
 class Model(th.nn.Module):
     def __init__(self, config):
         super(Model, self).__init__()
@@ -130,7 +162,7 @@ class Model(th.nn.Module):
 
 # 训练
 model = Model(config).to(device)
-opti = optim.Adam(params=model.parameters(), lr=0.01, betas=(0.9, 0.999), eps=10**-8, weight_decay=0.01)
+opti = optim.AdamW(params=model.parameters(), lr=0.01, betas=(0.9, 0.999), eps=10**-8, weight_decay=0.01)
 # opti = optim.SGD(params=model.parameters(), lr=0.01, momentum=0.9)
 # objt = nn.CrossEntropyLoss(ignore_index=tokenizer.pad_token_id, reduction="mean")
 objt = nn.CrossEntropyLoss(reduction="mean")
@@ -141,6 +173,9 @@ for epoch in range(epochs):
     loss_tmp = 0
     model.train()
     for (i, (inputs, labels)) in enumerate(loader):
+        inputs = inputs.to(device)
+        labels = labels.to(device)
+        
         output_mlp = model(inputs)
         loss = objt(output_mlp, labels)
         loss_tmp += loss.item()
