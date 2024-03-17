@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 '''
 https://huggingface.co/course/zh-CN/chapter2/3?fw=pt
+!pip install -i https://pypi.tuna.tsinghua.edu.cn/simple -U pytorch-crf
 '''
 import os
 import random
@@ -19,6 +20,8 @@ from transformers import (DataCollatorWithPadding, DataCollatorForLanguageModeli
 from datasets import (load_dataset, load_from_disk)
 from torchcrf import CRF
 import torch.optim as optim
+import evaluate
+
 
 device = th.device("cuda" if th.cuda.is_available() else "cpu")
 
@@ -196,12 +199,15 @@ inputs = tokenizer.batch_encode_plus(batch_text_or_text_pairs=texts,
                                      return_tensors="pt",
                                      return_length=True)
 
+metrics = evaluate.combine(["accuracy", "f1"])
+
 model.eval()
 with th.no_grad():
     out_mlp = model(inputs)
     y_hat = th.softmax(out_mlp, dim=1)
     y_pred = th.argmax(y_hat, dim=1)
-
+    dct_res = metrics.compute(references=y_true.long(), predictions=y_pred.long())
+    
 
 # ----------------------------------------------------------------------------------------------------------------
 # 完形填空
