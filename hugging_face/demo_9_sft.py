@@ -153,6 +153,12 @@ model_base = AutoModelForCausalLM.from_pretrained(
     # load_in_4bit=True
     quantization_config=config_bnb
 )
+'''
+model: 6B (fp32)
+weight: 6G * 4 = 24
+grads: 6G * 4 = 24
+optim: 6G * 4 * 2 = 48
+'''
 
 # for param in model_base.parameters():
 #     param.requires_grad_(False)
@@ -174,6 +180,7 @@ for i, (name, parm) in enumerate(model_base.named_parameters()):
 '''
 
 print(model_base)
+print(model_base.dtype)
 
 # check embedding_size
 embedding_size = model_base.get_input_embeddings().weight.shape[0]
@@ -198,11 +205,15 @@ config_model = {
 # ----------------------------------------------------------------------------------------------------------------
 # LoRA
 # LoRA: Low-Rank Adaptation of Large Language Models
-# config_lora = LoraConfig(target_modules=["0"], r=8)
+# config_lora = LoraConfig(target_modules=["0"])
+# config_lora = LoraConfig(target_modules=["query_key_value", "dense_4h_to_h"])
+# config_lora = LoraConfig(target_modules=[".*\.1.*query_key_value"])
+# config_lora = LoraConfig(target_modules=["query_key_value"], modules_to_save=["word_embeddings"])
 config_lora = LoraConfig(
-    r=2,
-    lora_alpha=16,
-    lora_dropout=0.1,
+    r=config_model.get("rank"),
+    lora_alpha=config_model.get("lora_alpha"),
+    lora_dropout=config_model.get("lora_dropout"),
+    use_rslora=config_model.get("use_rslora"),
     bias="none",
     task_type=TaskType.CAUSAL_LM
 )
@@ -210,10 +221,10 @@ config_lora = LoraConfig(
 # model_base = prepare_model_for_int8_training(model_base)
 # windows 环境：https://github.com/jllllll/bitsandbytes-windows-webui/tree/wheels
 model_lora = get_peft_model(model=model_base, peft_config=config_lora)
+model_lora.enable_input_require_grads()  # if TrainingArguments(gradient_checkpointing=True)
 print(model_lora)
+print(config_lora)  # 查看 target_modules
 
-# model_lora.is_parallelizable = True
-# model_lora.model_parallel = True
 
 # print_trainable_parameters - 1
 model_lora.print_trainable_parameters()
@@ -259,10 +270,11 @@ args_train = TrainingArguments(
 args_train = TrainingArguments(
     output_dir=os.path.join(path_model, "model_sft"),
     num_train_epochs=3,
-    per_device_train_batch_size=8,
-    per_device_eval_batch_size=8,
-    gradient_accumulation_steps=1,
-    optim="adamw_torch",
+    per_device_train_batch_size=2,
+    per_device_eval_batch_size=2,
+    gradient_accumulation_steps=2,  # save mem but waste time
+    gradient_checkpointing=True,    # save mem but waste time
+    optim="adafactor",              # save mem but waste time
     learning_rate=0.001,
     weight_decay=0.01,
     save_strategy="epoch",
@@ -345,7 +357,7 @@ model_sft = PeftModel.from_pretrained(
     model_id=os.path.join(path_model, "model_sft"),
     is_trainable=False
 )
-model_sft = model_sft.merge_and_unload()
+model_sft = model_sft.merge_and_unload()  # W + BA, speed up
 print(model_sft)
 
 # inference
@@ -356,12 +368,16 @@ Design a database to record employee salaries.
 
 ### Response:
 """
-
 response, history = model_sft.chat(tokenizer, query=query, history=[])
 
+# save merged model and load
+model_sft.save_pretrained(save_directory=os.path.join(path_model, "model_lora"),
+                          max_shard_size="1GB")
 
-# model_sft.save_pretrained(save_directory=os.path.join(path_model, "model_lora"),
-#                           max_shard_size="1GB")
-# model_sft = th.load(os.path.join(path_model, "model_sft"))
-# model_sft.load_state_dict(th.load("..."))
-# model_sft.eval()
+model_lora = AutoModelForCausalLM.from_pretrained(
+    pretrained_model_name_or_path=os.path.join(path_model, "model_lora")
+)
+
+# model_lora = th.load(os.path.join(path_model, "model_lora"))
+# model_lora.load_state_dict(th.load("..."))
+# model_lora.eval()

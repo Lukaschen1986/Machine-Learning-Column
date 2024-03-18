@@ -9,10 +9,10 @@ import numpy as np
 import torch as th
 from torch import nn
 from torch.utils.data import random_split
-from transformers import (pipeline, 
+from transformers import (pipeline,
                           AutoTokenizer, BertTokenizer,
                           AutoModel, BertModel, BertConfig,
-                          AutoModelForSequenceClassification, 
+                          AutoModelForSequenceClassification,
                           BertForSequenceClassification,
                           AdamW, AutoConfig)
 from transformers import (DataCollatorWithPadding, DataCollatorForLanguageModeling,
@@ -51,7 +51,7 @@ pretrained = BertModel.from_pretrained(
     cache_dir=path_model,
     force_download=False,
     local_files_only=False
-    )
+)
 print(pretrained)
 print(pretrained.config)
 print(pretrained.config.output_attentions)  # False
@@ -59,7 +59,7 @@ print(pretrained.config.output_hidden_states)  # False
 
 for param in pretrained.parameters():
     param.requires_grad_(False)
-    
+
 '''
 权重已下载并缓存在缓存文件夹中（因此将来对from_pretrained()方法的调用将不会重新下载它们）
 默认为 ~/.cache/huggingface/transformers . 您可以通过设置 HF_HOME 环境变量来自定义缓存文件夹。
@@ -89,9 +89,14 @@ model = AutoModelForSequenceClassification.from_pretrained("rbt3", num_labels=10
 output = model(**inputs)
 print(output.logits.shape())  # torch.Size([1, 10])
 
+# for param in model.bert.parameters():
+#     param.requires_grad_(False)  # 只冻结 bert 参数
+
 # ----------------------------------------------------------------------------------------------------------------
 # 中文分类
 # 数据集类
+
+
 class Dataset(th.utils.data.Dataset):
     def __init__(self):
         # super(Dataset, self).__init__()
@@ -99,39 +104,43 @@ class Dataset(th.utils.data.Dataset):
             path="csv",
             data_files=os.path.join(path_data, "text_cls.csv"),
             split="all"
-            )
-    
+        )
+
     def __len__(self):
         return len(self.dataset)
 
     def __getitem__(self, i):
         text = self.dataset[i]["text"]
         label = self.dataset[i]["label"]
-        return text, label 
+        return text, label
+
 
 # 划分数据集
 dataset = Dataset()
 trainset, validset = random_split(dataset, lengths=[0.9, 0.1])
-# trainset, validset = dataset.train_test_split(test_size=0.1, stratify_by_column="label") 
+# trainset, validset = dataset.train_test_split(test_size=0.1, stratify_by_column="label")
 
 # 整理函数
+
+
 def collate_fn(dataset):
     texts = [x[0] for x in dataset]
     labels = [x[1] for x in dataset]
     max_length = max(len(x) for x in texts) + 2
-    
-    #编码
+
+    # 编码
     inputs = tokenizer.batch_encode_plus(batch_text_or_text_pairs=texts,
-                                          truncation=True,
-                                          padding="max_length",
-                                          max_length=max_length,
-                                          return_tensors="pt",
-                                          return_length=True)
+                                         truncation=True,
+                                         padding="max_length",
+                                         max_length=max_length,
+                                         return_tensors="pt",
+                                         return_length=True)
 
     labels = th.LongTensor(labels)  # torch.int64
     # labels = th.Tensor(labels, dtype=th.long)  # torch.int64
     return inputs, labels
 # collate_fn = DataCollatorWithPadding(tokenizer)
+
 
 # 数据迭代器
 loader = th.utils.data.DataLoader(dataset=dataset,
@@ -141,27 +150,69 @@ loader = th.utils.data.DataLoader(dataset=dataset,
                                   drop_last=True)
 
 # 下游模型
-config = {"pretrained": pretrained}
+config = {
+    "pretrained": pretrained,
+    "embedding_dim": embedding_dim,
+    "hidden_dim": hidden_dim,
+    "dropout": dropout
+}
+
 
 class Model(th.nn.Module):
     def __init__(self, config):
         super(Model, self).__init__()
         self.pretrained = config.get("pretrained")
-        self.mlp = th.nn.Linear(768, 2)  # 此处可设计为多层mlp，用nn.Sequential包裹
+        self.embedding_dim = onfig.get("embedding_dim")
+        self.hidden_dim = onfig.get("hidden_dim")
+        self.dropout = onfig.get("dropout")
+
+        # self.mlp = th.nn.Linear(768, 2)  # 此处可设计为多层mlp，用nn.Sequential包裹
+        self.lstm = th.nn.LSTM(input_size=self.embedding_dim,
+                               hidden_size=self.hidden_dim,
+                               num_layers=1,
+                               dropout=self.dropout,
+                               batch_first=True,
+                               bidirectional=True)
+
+        self.mlp = th.nn.Sequential(
+            # layer-1
+            th.nn.Linear(in_features=self.hidden_dim * 2, out_features=256),
+            th.nn.ReLU(),
+            th.nn.Dropout(p=self.dropout),
+            th.nn.LayerNorm(normalized_shape=256),
+            # layer-2
+            th.nn.Linear(in_features=256, out_features=128),
+            th.nn.ReLU(),
+            th.nn.Dropout(p=self.dropout),
+            th.nn.LayerNorm(normalized_shape=128),
+            # layer-3
+            th.nn.Linear(in_features=128, out_features=64),
+            th.nn.ReLU(),
+            th.nn.Dropout(p=self.dropout),
+            th.nn.LayerNorm(normalized_shape=64),
+            # layer-out
+            th.nn.Linear(in_features=64, out_features=2)
+        )
 
     def forward(self, inputs):
+        # bert layer
         tokens = inputs["input_ids"]
         segments = inputs["token_type_ids"]
         valid_lens = inputs["attention_mask"]
-        
+
         output_bert = self.pretrained(
             input_ids=tokens,
             token_type_ids=segments,
             attention_mask=valid_lens
-            ).last_hidden_state
+        ).last_hidden_state
 
-        out_mlp = self.mlp(output_bert[:, 0, :])
+        # lstm layer
+        output_lstm, [ht, ct] = self.lstm(output_bert)
+
+        # mlp_layer
+        out_mlp = self.mlp(output_lstm[:, 0, :])
         return out_mlp
+
 
 # 训练
 model = Model(config).to(device)
@@ -178,15 +229,15 @@ for epoch in range(epochs):
     for (i, (inputs, labels)) in enumerate(loader):
         inputs = inputs.to(device)
         labels = labels.to(device)
-        
+
         output_mlp = model(inputs)
         loss = objt(output_mlp, labels)
         loss_tmp += loss.item()
-        
+
         opti.zero_grad(set_to_none=True)
         loss.backward()
         opti.step()
-    
+
     loss_train = loss_tmp / (i+1)
     print(f"epoch {epoch}  loss_train {loss_train:.4f}")
 
@@ -207,7 +258,7 @@ with th.no_grad():
     y_hat = th.softmax(out_mlp, dim=1)
     y_pred = th.argmax(y_hat, dim=1)
     dct_res = metrics.compute(references=y_true.long(), predictions=y_pred.long())
-    
+
 
 # ----------------------------------------------------------------------------------------------------------------
 # 完形填空
@@ -218,7 +269,7 @@ class Dataset(th.utils.data.Dataset):
             path="csv",
             data_files=os.path.join(path_data, "text_fill.csv"),
             split="all"
-            )
+        )
 
         def func(dataset):
             return len(dataset["text"]) > 30
@@ -232,8 +283,10 @@ class Dataset(th.utils.data.Dataset):
         return text
 
 # 整理函数
+
+
 def collate_fn(dataset):
-    #编码
+    # 编码
     inputs = tokenizer.batch_encode_plus(batch_text_or_text_pairs=dataset,
                                          truncation=True,
                                          padding="max_length",
@@ -251,6 +304,7 @@ def collate_fn(dataset):
     labels = th.LongTensor(labels)
     return tokens, segments, valid_lens, labels
 
+
 # 数据迭代器
 loader = th.utils.data.DataLoader(dataset=Dataset(),
                                   batch_size=16,
@@ -259,6 +313,8 @@ loader = th.utils.data.DataLoader(dataset=Dataset(),
                                   drop_last=True)
 
 # 下游模型
+
+
 class Model(th.nn.Module):
     def __init__(self, config):
         super(Model, self).__init__()
@@ -272,7 +328,7 @@ class Model(th.nn.Module):
             input_ids=tokens,
             token_type_ids=segments,
             attention_mask=valid_lens
-            ).last_hidden_state
+        ).last_hidden_state
 
         out_mlp = self.mlp(output_bert[:, 15, :])
         return out_mlp
@@ -280,13 +336,15 @@ class Model(th.nn.Module):
 # ----------------------------------------------------------------------------------------------------------------
 # 中文句子关系推断
 # 数据集类
+
+
 class Dataset(th.utils.data.Dataset):
     def __init__(self):
         dataset = load_dataset(
             path="csv",
             data_files=os.path.join(path_data, "text_inference.csv"),
             split="all"
-            )
+        )
 
         def func(data):
             return len(data["text"]) > 40
@@ -298,7 +356,7 @@ class Dataset(th.utils.data.Dataset):
     def __getitem__(self, i):
         text = self.dataset[i]["text"]
         sent1 = text[0:20]
-        
+
         # 有一半的概率把后半句替换为一句无关的话
         if random.random() < 0.5:
             j = random.choice(range(self.dataset))
@@ -319,7 +377,7 @@ def collate_fn(data_set):
     # labels = [dct.get("label") for dct in data_set]  # 适用于 Dataset.from_pandas()
     max_length = max(len(x[0]) + len(x[1]) for x in sents) + 3
 
-    #编码
+    # 编码
     inputs = tokenizer.batch_encode_plus(batch_text_or_text_pairs=sents,
                                          truncation=True,
                                          padding="max_length",
@@ -343,6 +401,8 @@ loader = th.utils.data.DataLoader(dataset=data_set,
                                   drop_last=True)
 
 # 下游模型
+
+
 class Model(th.nn.Module):
     def __init__(self, config):
         super(Model, self).__init__()
@@ -354,10 +414,7 @@ class Model(th.nn.Module):
             input_ids=tokens,
             token_type_ids=segments,
             attention_mask=valid_lens
-            ).last_hidden_state
+        ).last_hidden_state
 
         out_mlp = self.mlp(output_bert[:, 0, :])
         return out_mlp
-    
-
-    
