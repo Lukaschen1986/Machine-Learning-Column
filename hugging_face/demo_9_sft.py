@@ -255,7 +255,27 @@ args_train = TrainingArguments(
     load_best_model_at_end=False,
     # push_to_hub=False
 )
-# 遗留：学习曲线打印
+
+args_train = TrainingArguments(
+    output_dir=os.path.join(path_model, "model_sft"),
+    num_train_epochs=3,
+    per_device_train_batch_size=8,
+    per_device_eval_batch_size=8,
+    gradient_accumulation_steps=1,
+    optim="adamw_torch",
+    learning_rate=0.001,
+    weight_decay=0.01,
+    save_strategy="epoch",
+    evaluation_strategy="epoch",
+    save_total_limit=3,
+    metric_for_best_model="f1",
+    load_best_model_at_end=True
+)
+'''
+# 学习曲线
+cd ./model_sft
+tensorboard --logdir runs
+'''
 
 collate_fn = DataCollatorForLanguageModeling(tokenizer, mlm=False)  # 或自定义 collate_fn，参见 demo_4_model.py
 # collate_fn = DataCollatorWithPadding(tokenizer)
@@ -296,7 +316,8 @@ TrainOutput(global_step=18, training_loss=1.8800998263888888,
                      'train_steps_per_second': 0.007, 'total_flos': 1322178922414080.0, 
                      'train_loss': 1.8800998263888888, 'epoch': 3.0})
 '''
-output_eval = trainer.evaluate()
+output_eval = trainer.evaluate(dataset_train)
+output_eval = trainer.evaluate(dataset_eval)
 '''
 {'eval_loss': 1.5322265625,
  'eval_runtime': 16.981,
