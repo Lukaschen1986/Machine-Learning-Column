@@ -142,8 +142,9 @@ len(tokenizer.get_vocab())  # 64796
 config_bnb = BitsAndBytesConfig(
     # load_in_8bit=True,
     load_in_4bit=True,
-    # bnb_4bit_use_double_quant=True,
-    # bnb_4bit_compute_dtype=th.bfloat16
+    # bnb_4bit_quant_type="nf4",
+    # bnb_4bit_compute_dtype=th.bfloat16,
+    # bnb_4bit_use_double_quant=True
 )
 
 model_base = AutoModelForCausalLM.from_pretrained(
@@ -279,7 +280,7 @@ args_train = TrainingArguments(
     per_device_eval_batch_size=2,
     gradient_accumulation_steps=2,  # save mem but waste time
     gradient_checkpointing=True,    # save mem but waste time
-    optim="adafactor",              # save mem but waste time
+    optim="adafactor",              # save mem but waste time, paged_adamw_32bit
     learning_rate=0.001,
     weight_decay=0.01,
     save_strategy="epoch",
@@ -363,7 +364,7 @@ model_sft = PeftModel.from_pretrained(
     model_id=os.path.join(path_model, "model_sft"),
     is_trainable=False
 )
-model_sft = model_sft.merge_and_unload()  # W + BA, speed up, but 8-bit errors
+model_sft = model_sft.merge_and_unload()  # W + BA, speed up, but errors when use 8-bit
 print(model_sft)
 
 # inference
