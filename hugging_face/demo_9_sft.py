@@ -14,7 +14,8 @@ import torch as th
 from torch.utils.tensorboard import SummaryWriter
 from datasets import (load_dataset, load_from_disk, Dataset)
 from transformers import (AutoTokenizer, AutoModel, AutoModelForCausalLM, BitsAndBytesConfig,
-                          TrainingArguments, DataCollatorWithPadding, DataCollatorForLanguageModeling)
+                          TrainingArguments, DataCollatorWithPadding, DataCollatorForLanguageModeling,
+                          DataCollatorForSeq2Seq)
 from transformers.integrations import TensorBoardCallback
 from peft import (LoraConfig, get_peft_model, PeftModel, TaskType, prepare_model_for_int8_training)
 from trl import SFTTrainer
@@ -132,7 +133,10 @@ tokenizer = AutoTokenizer.from_pretrained(
 
 # tokenizer.pad_token  # '<unk>'
 # tokenizer.eos_token  # '</s>'
-# tokenizer.pad_token = tokenizer.eos_token
+# tokenizer.pad_token = tokenizer.eos_token  # 半精度训练时需要
+# tokenizer.padding_side = "right"  # llama2
+# tokenizer.build_chat_input(query, history=[], role="user")  # chatGLM3
+# tokenizer.decode(token_ids=ids)
 len(tokenizer.get_vocab())  # 64796
 
 config_bnb = BitsAndBytesConfig(
@@ -264,6 +268,7 @@ args_train = TrainingArguments(
     logging_dir=path_log,
     report_to="all",
     load_best_model_at_end=False,
+    remove_unused_columns=False,
     # push_to_hub=False
 )
 
@@ -291,6 +296,7 @@ tensorboard --logdir runs
 
 collate_fn = DataCollatorForLanguageModeling(tokenizer, mlm=False)  # 或自定义 collate_fn，参见 demo_4_model.py
 # collate_fn = DataCollatorWithPadding(tokenizer)
+# collate_fn = DataCollatorForSeq2Seq(tokenizer, padding=True)
 writer = SummaryWriter()
 
 trainer = SFTTrainer(
@@ -357,7 +363,7 @@ model_sft = PeftModel.from_pretrained(
     model_id=os.path.join(path_model, "model_sft"),
     is_trainable=False
 )
-model_sft = model_sft.merge_and_unload()  # W + BA, speed up
+model_sft = model_sft.merge_and_unload()  # W + BA, speed up, but 8-bit errors
 print(model_sft)
 
 # inference
