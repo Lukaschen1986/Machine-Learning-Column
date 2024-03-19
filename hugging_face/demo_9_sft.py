@@ -15,7 +15,7 @@ from torch.utils.tensorboard import SummaryWriter
 from datasets import (load_dataset, load_from_disk, Dataset)
 from transformers import (AutoTokenizer, AutoModel, AutoModelForCausalLM, BitsAndBytesConfig,
                           TrainingArguments, DataCollatorWithPadding, DataCollatorForLanguageModeling,
-                          DataCollatorForSeq2Seq)
+                          DataCollatorForSeq2Seq, DataCollatorForTokenClassification)
 from transformers.integrations import TensorBoardCallback
 from peft import (LoraConfig, get_peft_model, PeftModel, TaskType, prepare_model_for_int8_training)
 from trl import SFTTrainer
@@ -298,6 +298,7 @@ tensorboard --logdir runs
 collate_fn = DataCollatorForLanguageModeling(tokenizer, mlm=False)  # 或自定义 collate_fn，参见 demo_4_model.py
 # collate_fn = DataCollatorWithPadding(tokenizer)
 # collate_fn = DataCollatorForSeq2Seq(tokenizer, padding=True)
+# collate_fn = DataCollatorForTokenClassification(tokenizer)
 writer = SummaryWriter()
 
 trainer = SFTTrainer(
