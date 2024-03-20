@@ -140,8 +140,8 @@ tokenizer = AutoTokenizer.from_pretrained(
 len(tokenizer.get_vocab())  # 64796
 
 config_bnb = BitsAndBytesConfig(
-    # load_in_8bit=True,
-    load_in_4bit=True,
+    load_in_8bit=True,
+    # load_in_4bit=True,
     # bnb_4bit_quant_type="nf4",
     # bnb_4bit_compute_dtype=th.bfloat16,
     # bnb_4bit_use_double_quant=True
@@ -154,8 +154,7 @@ model_base = AutoModelForCausalLM.from_pretrained(
     local_files_only=True,
     trust_remote_code=True,
     device_map="auto",
-    # torch_dtype=th.bfloat16,
-    # load_in_4bit=True
+    torch_dtype=th.bfloat16,
     quantization_config=config_bnb
 )
 '''
@@ -309,7 +308,7 @@ trainer = SFTTrainer(
     data_collator=collate_fn,
     train_dataset=dataset_train,
     eval_dataset=dataset_eval,
-    dataset_text_field="text",
+    dataset_text_field="text",  # 用于指示数据集中哪个字段包含作为模型输入的文本数据
     packing=True,
     max_seq_length=512,
     callbacks=[TensorBoardCallback(writer)]
