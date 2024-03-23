@@ -169,7 +169,6 @@ optim: 6G * 4 * 2 = 48
 
 # model_base.is_parallelizable = True
 # model_base.model_parallel = True
-model_base.config.use_cache = False
 
 for i, (name, parm) in enumerate(model_base.named_parameters()):
     print(f"{i}  name: {name};  shape: {parm.shape};  dtype: {parm.dtype};  device: {parm.device}")
@@ -226,6 +225,7 @@ config_lora = LoraConfig(
 # windows 环境：https://github.com/jllllll/bitsandbytes-windows-webui/tree/wheels
 model_lora = get_peft_model(model=model_base, peft_config=config_lora)
 model_lora.enable_input_require_grads()  # if TrainingArguments(gradient_checkpointing=True)
+model_lora.config.use_cache = False
 print(model_lora)
 print(config_lora)  # 查看 target_modules
 
@@ -242,8 +242,7 @@ for param in model_lora.parameters():
         trainable_params += param.numel()
     all_params += param.numel()
 
-print(
-    f"trainable params: {trainable_params} || all params: {all_params} || trainable%: {100 * trainable_params / all_params:.4f}")
+print(f"trainable params: {trainable_params} || all params: {all_params} || trainable%: {100 * trainable_params / all_params:.4f}")
 
 # ----------------------------------------------------------------------------------------------------------------
 # SFT
@@ -282,6 +281,7 @@ args_train = TrainingArguments(
     optim="adafactor",              # save mem but waste time, paged_adamw_32bit
     learning_rate=0.001,
     weight_decay=0.01,
+    logging_strategy="epoch",
     save_strategy="epoch",
     evaluation_strategy="epoch",
     save_total_limit=3,
@@ -327,16 +327,16 @@ def compute_metrics(pred):
 '''
 
 # model_lora.config.use_cache = False
-output_train = trainer.train()
-metrics = output_train.metrics
+res_train = trainer.train()
+metrics = res_train.metrics
 '''
 TrainOutput(global_step=18, training_loss=1.8800998263888888, 
             metrics={'train_runtime': 2613.6248, 'train_samples_per_second': 0.028, 
                      'train_steps_per_second': 0.007, 'total_flos': 1322178922414080.0, 
                      'train_loss': 1.8800998263888888, 'epoch': 3.0})
 '''
-output_eval = trainer.evaluate(dataset_train)
-output_eval = trainer.evaluate(dataset_eval)
+res_eval = trainer.evaluate(dataset_train)
+res_eval = trainer.evaluate(dataset_eval)
 '''
 {'eval_loss': 1.5322265625,
  'eval_runtime': 16.981,
