@@ -3,9 +3,16 @@
 https://www.bilibili.com/video/BV1TN411K7sn/?p=3&spm_id_from=333.880.my_history.page.click&vd_source=fac9279bd4e33309b405d472b24286a8
 https://www.bilibili.com/video/BV1TN411K7sn?p=4&vd_source=fac9279bd4e33309b405d472b24286a8
 https://www.bilibili.com/video/BV1Bg411J78F/?spm_id_from=333.880.my_history.page.click&vd_source=fac9279bd4e33309b405d472b24286a8
+
+conda create -n test_env
+activate test_env
+conda env list
+conda env remove -n test_env
 """
 print(123)
 
+# python
+# jupyter
 # python-snippets
 def fname(arg):
     pass
