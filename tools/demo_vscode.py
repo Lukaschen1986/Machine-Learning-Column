@@ -8,6 +8,24 @@ conda create -n test_env
 activate test_env
 conda env list
 conda env remove -n test_env
+
+# settings.json
+{
+    "[python]": {
+        "diffEditor.ignoreTrimWhitespace": false,
+        "editor.formatOnType": true,
+        "editor.wordBasedSuggestions": "off"
+    },
+    "terminal.integrated.defaultProfile.windows": "Command Prompt",
+    "editor.fontLigatures": false,
+    "editor.mouseWheelZoom": true,
+    "python.analysis.completeFunctionParens": true,
+    "workbench.colorTheme": "Visual Studio Dark",
+    "remote.SSH.remotePlatform": {
+        "direct.virtaicloud.com": "linux"
+    },
+    "notebook.output.scrolling": true
+}
 """
 print(123)
 
@@ -24,6 +42,7 @@ class ClassName(object):
     """docstring for ClassName."""
     def __init__(self, arg):
         super(ClassName, self).__init__()
+
 
 
 if __name__ == "__main__":
