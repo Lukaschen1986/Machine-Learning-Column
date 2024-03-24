@@ -17,7 +17,7 @@ from transformers import (AutoTokenizer, AutoModel, AutoModelForCausalLM, BitsAn
                           TrainingArguments, DataCollatorWithPadding, DataCollatorForLanguageModeling,
                           DataCollatorForSeq2Seq, DataCollatorForTokenClassification)
 from transformers.integrations import TensorBoardCallback
-from peft import (LoraConfig, get_peft_model, PeftModel, TaskType, prepare_model_for_int8_training)
+from peft import (LoraConfig, get_peft_model, PeftModel, TaskType, prepare_model_for_kbit_training)
 from trl import SFTTrainer
 
 
@@ -221,7 +221,7 @@ config_lora = LoraConfig(
     task_type=TaskType.CAUSAL_LM
 )
 
-# model_base = prepare_model_for_int8_training(model_base)
+# model_base = prepare_model_for_kbit_training(model_base)
 # windows 环境：https://github.com/jllllll/bitsandbytes-windows-webui/tree/wheels
 model_lora = get_peft_model(model=model_base, peft_config=config_lora)
 model_lora.enable_input_require_grads()  # if TrainingArguments(gradient_checkpointing=True)
