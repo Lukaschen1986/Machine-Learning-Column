@@ -95,8 +95,6 @@ print(output.logits.shape())  # torch.Size([1, 10])
 # ----------------------------------------------------------------------------------------------------------------
 # 中文分类
 # 数据集类
-
-
 class Dataset(th.utils.data.Dataset):
     def __init__(self):
         # super(Dataset, self).__init__()
@@ -121,8 +119,6 @@ trainset, validset = random_split(dataset, lengths=[0.9, 0.1])
 # trainset, validset = dataset.train_test_split(test_size=0.1, stratify_by_column="label")
 
 # 整理函数
-
-
 def collate_fn(dataset):
     texts = [x[0] for x in dataset]
     labels = [x[1] for x in dataset]
@@ -253,7 +249,7 @@ inputs = tokenizer.batch_encode_plus(batch_text_or_text_pairs=texts,
 metrics = evaluate.combine(["accuracy", "f1"])
 
 model.eval()
-with th.no_grad():
+with th.inference_mode():
     out_mlp = model(inputs)
     y_hat = th.softmax(out_mlp, dim=1)
     y_pred = th.argmax(y_hat, dim=1)
@@ -283,8 +279,6 @@ class Dataset(th.utils.data.Dataset):
         return text
 
 # 整理函数
-
-
 def collate_fn(dataset):
     # 编码
     inputs = tokenizer.batch_encode_plus(batch_text_or_text_pairs=dataset,
@@ -313,8 +307,6 @@ loader = th.utils.data.DataLoader(dataset=Dataset(),
                                   drop_last=True)
 
 # 下游模型
-
-
 class Model(th.nn.Module):
     def __init__(self, config):
         super(Model, self).__init__()
@@ -336,8 +328,6 @@ class Model(th.nn.Module):
 # ----------------------------------------------------------------------------------------------------------------
 # 中文句子关系推断
 # 数据集类
-
-
 class Dataset(th.utils.data.Dataset):
     def __init__(self):
         dataset = load_dataset(
@@ -401,8 +391,6 @@ loader = th.utils.data.DataLoader(dataset=data_set,
                                   drop_last=True)
 
 # 下游模型
-
-
 class Model(th.nn.Module):
     def __init__(self, config):
         super(Model, self).__init__()
