@@ -158,9 +158,9 @@ class Model(th.nn.Module):
     def __init__(self, config):
         super(Model, self).__init__()
         self.pretrained = config.get("pretrained")
-        self.embedding_dim = onfig.get("embedding_dim")
-        self.hidden_dim = onfig.get("hidden_dim")
-        self.dropout = onfig.get("dropout")
+        self.embedding_dim = config.get("embedding_dim")
+        self.hidden_dim = config.get("hidden_dim")
+        self.dropout = config.get("dropout")
 
         # self.mlp = th.nn.Linear(768, 2)  # 此处可设计为多层mlp，用nn.Sequential包裹
         self.lstm = th.nn.LSTM(input_size=self.embedding_dim,

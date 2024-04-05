@@ -33,7 +33,6 @@ path_log = os.path.join(os.path.dirname(path_project), "log")
 
 # ----------------------------------------------------------------------------------------------------------------
 # load dataset official
-# https://huggingface.co/datasets/tatsu-lab/alpaca
 dataset_train = load_dataset(
     path="parquet",
     data_files=os.path.join(path_data, "tatsu-lab/alpaca/train-00000-of-00001-a09b74b3ef9c3b56.parquet"),
@@ -316,14 +315,20 @@ trainer = SFTTrainer(
 )
 
 '''
-## compute_metrics
 from sklearn.metrics import accuracy_score, f1_score  
+
 def compute_metrics(pred):  
     labels = pred.label_ids  
     preds = pred.predictions.argmax(-1)  
     accuracy = accuracy_score(labels, preds)  
     f1 = f1_score(labels, preds, average='macro')  # 或使用 'micro', 'weighted' 等  
     return {'accuracy': accuracy, 'f1': f1}
+
+def compute_metrics(eval_predict):
+    preds, labels = eval_predict
+    preds = preds.argmax(axis=-1)
+    f1 = f1_score(labels, preds)
+    return {"f1": f1}
 '''
 
 # model_lora.config.use_cache = False

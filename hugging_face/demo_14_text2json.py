@@ -31,7 +31,7 @@ filename = "text-to-json/100K_deduplicated_ner_indexes_name_country_alpaca_forma
 filename = "text-to-json/500K_deduplicated_ner_indexes_multiple_organizations_locations_alpaca_format_json_response_all_cases.json"
 
 dataset = load_dataset(
-    path="json",
+    path="arrow",
     data_files=os.path.join(path_data, filename),
     split="all"
 )

@@ -67,6 +67,8 @@ dataset["train"].features
 dataset = dataset.train_test_split(test_size=0.1)
 dataset = dataset.train_test_split(test_size=0.1, stratify_by_column="label", shuffle=True, seed=0) 
 
+dataset = dataset.remove_columns(["id", "title"])  # 删除多个列
+
 dataset["train"].select([0, 1])  # 选取0,1行
 filter_dataset = dataset["train"].filter(lambda example: "中国" in example["title"])
 
