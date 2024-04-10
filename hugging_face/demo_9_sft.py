@@ -86,9 +86,6 @@ dataset_train, dataset_test = dataset["train"], dataset["test"]
 
 # ----------------------------------------------------------------------------------------------------------------
 # LLM
-# https://huggingface.co/Salesforce/xgen-7b-8k-base
-# https://huggingface.co/facebook/opt-350m
-# https://huggingface.co/THUDM/chatglm3-6b
 # checkpoint = "facebook/opt-350m"
 # checkpoint = "gpt2"
 # checkpoint = "chatglm3-6b"
@@ -102,13 +99,11 @@ tokenizer = AutoTokenizer.from_pretrained(
     trust_remote_code=True
 )
 
-# tokenizer.pad_token  # '<unk>'
-# tokenizer.eos_token  # '</s>'
-tokenizer.pad_token = tokenizer.eos_token  # 半精度训练时需要
+tokenizer.pad_token  # '<|endoftext|>'
+tokenizer.eos_token  # '<|im_end|>'
+# tokenizer.pad_token = tokenizer.eos_token  # 半精度训练时需要
 # tokenizer.padding_side = "right"  # llama2
-# tokenizer.build_chat_input(query, history=[], role="user")  # chatGLM3
-# tokenizer.decode(token_ids=ids)
-len(tokenizer.get_vocab())  # 64796
+len(tokenizer.get_vocab())  # 151646
 
 config_bnb = BitsAndBytesConfig(
     load_in_8bit=True,
@@ -128,12 +123,6 @@ model_base = AutoModelForCausalLM.from_pretrained(
     torch_dtype=th.bfloat16,
     # quantization_config=config_bnb
 )
-'''
-model: 6B (fp32)
-weight: 6G * 4 = 24
-grads: 6G * 4 = 24
-optim: 6G * 4 * 2 = 48
-'''
 
 # for param in model_base.parameters():
 #     param.requires_grad_(False)
@@ -215,7 +204,7 @@ config_lora = LoraConfig(
     target_modules=["q_proj", "k_proj", "v_proj", "o_proj"]
 )
 
-model_base = prepare_model_for_kbit_training(model_base)
+# model_base = prepare_model_for_kbit_training(model_base)
 # windows 环境：https://github.com/jllllll/bitsandbytes-windows-webui/tree/wheels
 model_lora = get_peft_model(model=model_base, peft_config=config_lora)
 model_lora.enable_input_require_grads()  # if TrainingArguments(gradient_checkpointing=True)
