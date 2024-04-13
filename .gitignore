@@ -6,6 +6,9 @@ model/
 *.bin
 *.ini
 *.bak
+*.safetensors
+*.txt
+*.md
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
