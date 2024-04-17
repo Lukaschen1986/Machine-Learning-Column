@@ -95,7 +95,7 @@ content_usr += suffix
 print(content_usr)
 
 '''
-# SFT Exsample
+# SFT Example
 content_ast = """
 {
   "infoList": [
