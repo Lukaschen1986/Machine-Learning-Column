@@ -27,6 +27,8 @@ path_model = os.path.join(os.path.dirname(path_project), "model")
 # LLM
 # checkpoint = "Qwen1.5-1.8B-Chat"
 checkpoint = "Qwen1.5-4B-Chat"
+# checkpoint = "Qwen1.5-7B-Chat"
+# checkpoint = "Qwen1.5-MoE-A2.7B-Chat"
 
 tokenizer = AutoTokenizer.from_pretrained(
     pretrained_model_name_or_path=os.path.join(path_model, checkpoint),
@@ -37,17 +39,16 @@ tokenizer = AutoTokenizer.from_pretrained(
 
 # tokenizer.pad_token  # '<|endoftext|>'
 # tokenizer.eos_token  # '<|im_end|>'
-# tokenizer.pad_token = tokenizer.eos_token
 
 if tokenizer.padding_side != "right":
     tokenizer.padding_side = "right"
 
 config_bnb = BitsAndBytesConfig(
-    # load_in_8bit=True,
-    load_in_4bit=True,
-    bnb_4bit_quant_type="nf4",
-    bnb_4bit_compute_dtype=th.bfloat16,
-    bnb_4bit_use_double_quant=True
+    load_in_8bit=True,
+    # load_in_4bit=True,
+    # bnb_4bit_quant_type="nf4",
+    # bnb_4bit_compute_dtype=th.bfloat16,
+    # bnb_4bit_use_double_quant=True
 )
 
 model_base = AutoModelForCausalLM.from_pretrained(
@@ -59,6 +60,10 @@ model_base = AutoModelForCausalLM.from_pretrained(
     torch_dtype=th.bfloat16,
     # quantization_config=config_bnb
 )
+print(model_base)
+
+for i, (name, parm) in enumerate(model_base.named_parameters()):
+    print(f"{i}  name: {name};  shape: {parm.shape};  dtype: {parm.dtype};  device: {parm.device}")
 
 # ----------------------------------------------------------------------------------------------------------------
 # prompt
