@@ -171,7 +171,8 @@ config_lora = LoraConfig(
     lora_alpha=16,
     lora_dropout=0.1,
     bias="none",
-    task_type=TaskType.SEQ_CLS
+    task_type=TaskType.SEQ_CLS,
+    modules_to_save=["score"]
     )
 
 # model_reward = prepare_model_for_int8_training(model_reward)
