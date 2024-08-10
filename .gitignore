@@ -9,6 +9,7 @@ model/
 *.safetensors
 *.txt
 *.md
+*.whl
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -39,6 +40,7 @@ share/python-wheels/
 *.egg
 MANIFEST
 history/
+whl/
 
 # PyInstaller
 #  Usually these files are written by a python script from a template
