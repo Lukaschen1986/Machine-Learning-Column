@@ -10,6 +10,8 @@ model/
 *.txt
 *.md
 *.whl
+runs/
+*/runs/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -41,7 +43,6 @@ share/python-wheels/
 MANIFEST
 history/
 whl/
-*/runs/
 
 # PyInstaller
 #  Usually these files are written by a python script from a template

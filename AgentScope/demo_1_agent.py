@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 pip install -i https://pypi.tuna.tsinghua.edu.cn/simple agentscope --pre --user
+https://github.com/modelscope/agentscope
 """
 import warnings; warnings.filterwarnings("ignore")
 import os
