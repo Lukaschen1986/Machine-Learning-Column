@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """
-https://www.bilibili.com/video/BV1Gf421Z75D/?spm_id_from=333.880.my_history.page.click&vd_source=fac9279bd4e33309b405d472b24286a8
+https://www.bilibili.com/video/BV1oK421Y7Vh/?spm_id_from=333.788&vd_source=fac9279bd4e33309b405d472b24286a8
+https://dwexzknzsh8.feishu.cn/docx/VkYud3H0zoDTrrxNX5lce0S4nDh
 """
 import os
 import sys
@@ -11,9 +12,8 @@ import pandas as pd
 import torch as th
 import torch.nn as nn
 import torch.nn.functional as F
-from mult_head_attention import MultHeadAttention
-from layer_norm import LayerNorm
-from ffn import FFN
+from _2_encoder import Encoder
+from _3_decoder import Decoder
 
 
 # ----------------------------------------------------------------------------------------------------------------
@@ -30,25 +30,7 @@ path_model = os.path.join(os.path.dirname(path_project), "model")
 path_output = os.path.join(os.path.dirname(path_project), "output")
 
 # ----------------------------------------------------------------------------------------------------------------
-class EncoderLayer(nn.Module):
-    def __init__(self, n_embd, n_head, hidden, dropout):
-        super(EncoderLayer, self).__init__()
-        self.attention = MultHeadAttention(n_embd, n_head)
-        self.drop = nn.Dropout(dropout)
-        self.norm = LayerNorm(n_embd)
-        self.ffn = FFN(n_embd, hidden, dropout)
-    
-    def forward(self, x_enc, mask=False):
-        x_pre = x_enc.clone()
-        x_enc = self.attention(x_enc, x_enc, x_enc, mask)  # self-attention
-        x_enc = self.drop(x_enc)
-        x_enc = self.norm(x_enc + x_pre)
+class Transformer(nn.Module):
+    def __init__(self, source_pad_idx, target_pad_idx, enc_vocab_size, dec_vocab_size, 
+                 valid_lens, n_embd, n_head, n_hddn, n_layer, dropout):
         
-        x_pre = x_enc.clone()
-        x_enc = self.ffn(x_enc)
-        x_enc = self.drop(x_enc)
-        x_enc = self.norm(x_enc + x_pre)
-        return x_enc
-        
-        
-

@@ -11,8 +11,9 @@ import pandas as pd
 import torch as th
 import torch.nn as nn
 import torch.nn.functional as F
-from token_embedding import TokenEmbedding
-from positional_embedding import PositionalEmbedding
+from _2_1_1_mult_head_attention import MultHeadAttention
+from _2_1_2_layer_norm import LayerNorm
+from _2_1_3_ffn import FFN
 
 
 # ----------------------------------------------------------------------------------------------------------------
@@ -29,15 +30,25 @@ path_model = os.path.join(os.path.dirname(path_project), "model")
 path_output = os.path.join(os.path.dirname(path_project), "output")
 
 # ----------------------------------------------------------------------------------------------------------------
-class TransformerEmbedding(nn.Module):
-    def __init__(self, vocab_size, n_embd, valid_lens, dropout):
-        super(TransformerEmbedding, self).__init__()
-        self.tok_embd = TokenEmbedding(vocab_size, n_embd)
-        self.pos_embd = PositionalEmbedding(n_embd, valid_lens)
-        self.drop_out = nn.Dropout(dropout)
+class EncoderLayer(nn.Module):
+    def __init__(self, n_embd, n_head, n_hddn, dropout):
+        super(EncoderLayer, self).__init__()
+        self.attention = MultHeadAttention(n_embd, n_head)
+        self.drop = nn.Dropout(dropout)
+        self.norm = LayerNorm(n_embd)
+        self.ffn = FFN(n_embd, n_hddn, dropout)
     
-    def forward(self, x):
-        tok_embd = self.tok_embd(x)
-        pos_embd = self.pos_embd(x)
-        return self.drop_out(tok_embd + pos_embd)
+    def forward(self, x_enc, mask=False):
+        x_pre = x_enc.clone()
+        x_enc = self.attention(x_enc, x_enc, x_enc, mask)  # self-attention
+        x_enc = self.drop(x_enc)
+        x_enc = self.norm(x_enc + x_pre)
+        
+        x_pre = x_enc.clone()
+        x_enc = self.ffn(x_enc)
+        x_enc = self.drop(x_enc)
+        x_enc = self.norm(x_enc + x_pre)
+        return x_enc
+        
+        
 

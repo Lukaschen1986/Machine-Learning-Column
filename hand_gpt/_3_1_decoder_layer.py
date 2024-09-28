@@ -11,9 +11,9 @@ import pandas as pd
 import torch as th
 import torch.nn as nn
 import torch.nn.functional as F
-from mult_head_attention import MultHeadAttention
-from layer_norm import LayerNorm
-from ffn import FFN
+from _2_1_1_mult_head_attention import MultHeadAttention
+from _2_1_2_layer_norm import LayerNorm
+from _2_1_3_ffn import FFN
 
 
 # ----------------------------------------------------------------------------------------------------------------
@@ -31,31 +31,30 @@ path_output = os.path.join(os.path.dirname(path_project), "output")
 
 # ----------------------------------------------------------------------------------------------------------------
 class DecoderLayer(nn.Module):
-    def __init__(self, n_embd, n_head, hidden, dropout):
+    def __init__(self, n_embd, n_head, n_hddn, dropout):
         super(DecoderLayer, self).__init__()
         self.attention = MultHeadAttention(n_embd, n_head)
         self.drop = nn.Dropout(dropout)
         self.norm = LayerNorm(n_embd)
-        self.ffn = FFN(n_embd, hidden, dropout)
+        self.ffn = FFN(n_embd, n_hddn, dropout)
     
-    def forward(self, x_dec, x_enc, t_mask, s_mask):
+    def forward(self, x_dec, x_enc, time_mask, padd_mask):
         x_pre = x_dec.clone()
-        x_dec = self.attention(x_dec, x_dec, x_dec, t_mask)
+        x_dec = self.attention(x_dec, x_dec, x_dec, time_mask)  # 下三角掩码
         x_dec = self.drop(x_dec)
         x_dec = self.norm(x_dec + x_pre)
         
         if x_enc:
             x_pre = x_dec.clone()
-            x_dec = self.attention(x_dec, x_enc, x_enc, s_mask)
+            x_dec = self.attention(x_dec, x_enc, x_enc, padd_mask)  # padding 掩码
+            x_dec = self.drop(x_dec)
+            x_dec = self.norm(x_dec + x_pre)
         
-        
-        
-        
-        x_pre = x.clone()
-        x = self.ffn(x)
-        x = self.drop(x)
-        x = self.norm(x + x_pre)
-        return x
+        x_pre = x_dec.clone()
+        x_dec = self.ffn(x_dec)
+        x_dec = self.drop(x_dec)
+        x_dec = self.norm(x_dec + x_pre)
+        return x_dec
 
 
 
