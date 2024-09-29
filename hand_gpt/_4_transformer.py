@@ -31,6 +31,38 @@ path_output = os.path.join(os.path.dirname(path_project), "output")
 
 # ----------------------------------------------------------------------------------------------------------------
 class Transformer(nn.Module):
-    def __init__(self, source_pad_idx, target_pad_idx, enc_vocab_size, dec_vocab_size, 
+    def __init__(self, enc_pad_idx, dec_pad_idx, enc_vocab_size, dec_vocab_size, 
                  valid_lens, n_embd, n_head, n_hddn, n_layer, dropout):
+        self.encoder = Encoder(enc_vocab_size, valid_lens, n_embd, n_head, n_hddn, n_layer, dropout)
+        self.decoder = Decoder(dec_vocab_size, valid_lens, n_embd, n_head, n_hddn, n_layer, dropout)
+        self.enc_pad_idx = enc_pad_idx
+        self.dec_pad_idx = dec_pad_idx
+    
+    def get_time_mask(self, q, k):
+        q_lens, k_lens = q.size(1), k.size(1)
+        time_mask = th.tril(th.ones([q_lens, k_lens]))  #.type(th.BoolTensor)
+        return time_mask
+    
+    def get_padd_mask(self, q, k, q_pad_idx, k_pad_idx):
+        q_lens, k_lens = q.size(1), k.size(1)
         
+        # (batch_size, valid_lens, q_lens, k_lens)
+        q_mask = q.ne(q_pad_idx).unsqueeze(1).unsqueeze(3)
+        q_mask = q_mask.repeat(1, 1, 1, k_lens)
+        
+        k_mask = k.ne(k_pad_idx).unsqueeze(1).unsqueeze(2)
+        k_mask = k_mask.repeat(1, 1, q_lens, 1)
+        
+        padd_mask = q_mask & k_mask
+        return padd_mask
+    
+    def forward(self, x_enc, x_dec):
+        padd_mask = self.get_padd_mask(x_enc, x_enc, self.enc_pad_idx, self.enc_pad_idx)
+        time_mask = self.get_padd_mask(x_dec, x_dec, self.dec_pad_idx, self.dec_pad_idx) * \
+            self.get_time_mask(x_dec, x_dec)
+        padd_time_mask = self.get_padd_mask(x_dec, x_enc, self.dec_pad_idx, self.enc_pad_idx)
+        
+        x_enc = self.encoder(x_enc, padd_mask)
+        x_dec = self.decoder(x_dec, x_enc, time_mask, padd_time_mask)
+        return x_dec
+

@@ -26,11 +26,11 @@ path_output = os.path.join(os.path.dirname(path_project), "output")
 
 # ----------------------------------------------------------------------------------------------------------------
 class Encoder(nn.Module):
-    def __init__(self, vocab_size, valid_lens, n_embd, n_head, hidden, n_layer, dropout):
+    def __init__(self, vocab_size, valid_lens, n_embd, n_head, n_hddn, n_layer, dropout):
         super(Encoder, self).__init__()
         self.embedding = Embedding(vocab_size, n_embd, valid_lens, dropout)
         self.layers = nn.ModuleList(
-            [EncoderLayer(n_embd, n_head, hidden, dropout) for _ in range(n_layer)]
+            [EncoderLayer(n_embd, n_head, n_hddn, dropout) for _ in range(n_layer)]
             )
         
     def forward(self, x_enc, padd_mask):
