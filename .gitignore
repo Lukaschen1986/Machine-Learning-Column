@@ -10,6 +10,7 @@ model/
 *.txt
 *.md
 *.whl
+*.yaml
 runs/
 */runs/
 

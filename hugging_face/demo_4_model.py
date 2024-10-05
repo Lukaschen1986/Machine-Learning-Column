@@ -97,7 +97,7 @@ print(output.logits.shape())  # torch.Size([1, 10])
 # 数据集类
 class Dataset(th.utils.data.Dataset):
     def __init__(self):
-        # super(Dataset, self).__init__()
+        super(Dataset, self).__init__()
         self.dataset = load_dataset(
             path="csv",
             data_files=os.path.join(path_data, "text_cls.csv"),
