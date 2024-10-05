@@ -217,6 +217,6 @@ trainer = RewardTrainer(
 trainer.train()
 trainer.evaluate()
 
-trainer.save_model(os.path.join(path_model, "model_reward.bin"))
+trainer.save_model(os.path.join(path_model, "model_reward"))
 
 
