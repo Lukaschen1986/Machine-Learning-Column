@@ -11,7 +11,7 @@ import pandas as pd
 import torch as th
 import torch.nn as nn
 import torch.nn.functional as F
-from _2_1_1_mult_head_attention import MultHeadAttention
+from hand_gpt._2_1_1_multi_head_attention import MultiHeadAttention
 from _2_1_2_layer_norm import LayerNorm
 from _2_1_3_ffn import FFN
 
