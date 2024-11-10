@@ -95,6 +95,7 @@ db1.docstore._dict
 db2.docstore._dict
 db1.merge_from(db2)
 
-
-
+# ----------------------------------------------------------------------------------------------------------------
+# LanceDB
+# https://github.com/microsoft/graphrag/blob/17658c5df845df0647ed6243b117484a3f4739d7/graphrag/vector_stores/lancedb.py#L7
 
