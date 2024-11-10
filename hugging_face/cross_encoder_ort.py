@@ -1,22 +1,20 @@
 import logging
-import os
-from functools import wraps
-from typing import Callable, Dict, List, Literal, Optional, Tuple, Type, Union
+from typing import (Dict, List, Literal, Optional, Union)
 
 import numpy as np
 import torch
-from torch import Tensor, nn
-from torch.optim import Optimizer
-from torch.utils.data import DataLoader
-from tqdm.autonotebook import tqdm, trange
-from transformers import AutoConfig, AutoModelForSequenceClassification, AutoTokenizer, is_torch_npu_available
-from transformers.tokenization_utils_base import BatchEncoding
-from transformers.utils import PushToHubMixin
+# from torch import Tensor, nn
+# from torch.optim import Optimizer
+# from torch.utils.data import DataLoader
+# from tqdm.autonotebook import tqdm, trange
+# from transformers import AutoConfig, AutoModelForSequenceClassification, AutoTokenizer, is_torch_npu_available
+# from transformers.tokenization_utils_base import BatchEncoding
+# from transformers.utils import PushToHubMixin
 
-from sentence_transformers.evaluation.SentenceEvaluator import SentenceEvaluator
-from sentence_transformers.readers import InputExample
-from sentence_transformers.SentenceTransformer import SentenceTransformer
-from sentence_transformers.util import fullname, get_device_name, import_from_string
+# from sentence_transformers.evaluation.SentenceEvaluator import SentenceEvaluator
+# from sentence_transformers.readers import InputExample
+# from sentence_transformers.SentenceTransformer import SentenceTransformer
+# from sentence_transformers.util import fullname, get_device_name, import_from_string
 
 from optimum.onnxruntime import ORTModelForSequenceClassification
 from sentence_transformers import CrossEncoder
@@ -35,7 +33,7 @@ class CrossEncoderOrt(CrossEncoder):
         automodel_args: Dict = None,
         trust_remote_code: bool = False,
         revision: Optional[str] = None,
-        local_files_only: bool = False,
+        local_files_only: bool = True,
         default_activation_function=None,
         classifier_dropout: float = None,
     ) -> None:
@@ -77,10 +75,10 @@ class CrossEncoderOrt(CrossEncoder):
         self.model = ORTModelForSequenceClassification.from_pretrained(
             model_id=model_name,
             config=self.config,
-            revision=revision,
-            trust_remote_code=trust_remote_code,
-            local_files_only=local_files_only,
             use_merged=True,
+            # revision=revision,
+            # trust_remote_code=trust_remote_code,
+            # local_files_only=local_files_only,
             # file_name=os.path.join(model_name, "model.onnx"),
         )
         self.model = self.model.to(self._target_device)
@@ -119,9 +117,9 @@ class CrossEncoderOrt(CrossEncoder):
     def predict_ort(
         self,
         sentences: List[List[str]],
-        batch_size: int = 32,
-        show_progress_bar: bool = None,
-        num_workers: int = 0,
+        # batch_size: int = 32,
+        # show_progress_bar: bool = None,
+        # num_workers: int = 0,
         activation_fct=None,
         apply_softmax=False,
         convert_to_numpy: bool = True,
@@ -145,10 +143,10 @@ class CrossEncoderOrt(CrossEncoder):
             sentences, padding=True, truncation="longest_first", return_tensors="pt", max_length=self.max_length
             ).to(self._target_device)
 
-        if show_progress_bar is None:
-            show_progress_bar = (
-                logger.getEffectiveLevel() == logging.INFO or logger.getEffectiveLevel() == logging.DEBUG
-            )
+        # if show_progress_bar is None:
+        #     show_progress_bar = (
+        #         logger.getEffectiveLevel() == logging.INFO or logger.getEffectiveLevel() == logging.DEBUG
+        #     )
 
         # iterator = inp_dataloader
         # if show_progress_bar:
@@ -203,9 +201,9 @@ class CrossEncoderOrt(CrossEncoder):
         documents: List[str],
         top_k: Optional[int] = None,
         return_documents: bool = False,
-        batch_size: int = 32,
-        show_progress_bar: bool = None,
-        num_workers: int = 0,
+        # batch_size: int = 32,
+        # show_progress_bar: bool = None,
+        # num_workers: int = 0,
         activation_fct=None,
         apply_softmax=False,
         convert_to_numpy: bool = True,
@@ -215,9 +213,9 @@ class CrossEncoderOrt(CrossEncoder):
         query_doc_pairs = [[query, doc] for doc in documents]
         scores = self.predict_ort(
             query_doc_pairs,
-            batch_size=batch_size,
-            show_progress_bar=show_progress_bar,
-            num_workers=num_workers,
+            # batch_size=batch_size,
+            # show_progress_bar=show_progress_bar,
+            # num_workers=num_workers,
             activation_fct=activation_fct,
             apply_softmax=apply_softmax,
             convert_to_numpy=convert_to_numpy,
@@ -234,19 +232,19 @@ class CrossEncoderOrt(CrossEncoder):
         results = sorted(results, key=lambda x: x["score"], reverse=True)
         return results[:top_k]
 
-    def save(self, path: str, *, safe_serialization: bool = True, **kwargs) -> None:
-        """
-        Saves the model and tokenizer to path; identical to `save_pretrained`
-        """
-        if path is None:
-            return
+    # def save(self, path: str, *, safe_serialization: bool = True, **kwargs) -> None:
+    #     """
+    #     Saves the model and tokenizer to path; identical to `save_pretrained`
+    #     """
+    #     if path is None:
+    #         return
 
-        logger.info("Save model to {}".format(path))
-        self.model.save_pretrained(path, safe_serialization=safe_serialization, **kwargs)
-        self.tokenizer.save_pretrained(path, **kwargs)
+    #     logger.info("Save model to {}".format(path))
+    #     self.model.save_pretrained(path, safe_serialization=safe_serialization, **kwargs)
+    #     self.tokenizer.save_pretrained(path, **kwargs)
 
-    def save_pretrained(self, path: str, *, safe_serialization: bool = True, **kwargs) -> None:
-        """
-        Saves the model and tokenizer to path; identical to `save`
-        """
-        return self.save(path, safe_serialization=safe_serialization, **kwargs)
+    # def save_pretrained(self, path: str, *, safe_serialization: bool = True, **kwargs) -> None:
+    #     """
+    #     Saves the model and tokenizer to path; identical to `save`
+    #     """
+    #     return self.save(path, safe_serialization=safe_serialization, **kwargs)
