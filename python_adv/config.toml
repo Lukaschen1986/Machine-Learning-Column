@@ -1,0 +1,11 @@
+w1 = 0.3
+w2 = 0.5
+weights = {distance = 0.25, orders = 0.2, interest = 0.2}
+
+[account-1]
+youtube.username = "ZhangSan"
+youtube.password = "123"
+
+[account-2.youtube]
+username = "LiSi"
+password = "456"
