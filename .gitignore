@@ -5,6 +5,7 @@ model/
 *.json
 *.bin
 *.ini
+*.toml
 *.bak
 *.safetensors
 *.txt
