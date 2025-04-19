@@ -18,4 +18,3 @@ if __name__ == "__main__":
     courses = [MathCourse(), ProgrammCourse()]
     for course in courses:
         course.enroll("Alice")
-
