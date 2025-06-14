@@ -23,22 +23,24 @@ path_model = os.path.join(os.path.dirname(path_project), "model")
 # ----------------------------------------------------------------------------------------------------------------
 # 加载数据
 dataset = load_from_disk(dataset_path=os.path.join(path_data, "peoples_daily_ner"))
-dataset = load_dataset("madao33/new-title-chinese", split="train[10:100]")
-dataset = load_dataset("madao33/new-title-chinese", split="train[:50%]")
-dataset = load_dataset("madao33/new-title-chinese", split=["train[:50%]", "validation[:10%]"])
+dataset = load_dataset("madao33/new-title-chinese", split="train[10:100]")  # split="train[:50%]", split=["train[:50%]", "validation[:10%]"]
 
 dataset = load_dataset(
-    path="csv",  # (JSON, CSV, Parquet, text, etc.)
+    path="parquet",  # (json, csv, parquet, text, etc.)
     data_files=os.path.join(path_data, "peoples_daily_ner.csv"),
     split="all"
     )
-# dataset = Dataset.from_csv(path_or_paths=os.path.join(path_data, "peoples_daily_ner.csv"), split="all")
-dataset = load_dataset(path="csv", data_dir=path_data, split="all")
+
+dataset = Dataset.from_csv(
+    path_or_paths=os.path.join(path_data, "peoples_daily_ner.csv"), 
+    split="all"
+    )
 
 features = [...]
-data_set = Dataset.from_pandas(df, features)\
-    .train_test_split(test_size=0.15, shuffle=True, seed=0)
+data_set = Dataset.from_pandas(df, features).train_test_split(test_size=0.15, shuffle=True, seed=0)
 train_set = data_set.get("train")
+
+data_set = Dataset.from_pandas(df).shuffle(seed=0)
 
 # ----------------------------------------------------------------------------------------------------------------
 # 数据集基本操作
