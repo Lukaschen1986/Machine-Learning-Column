@@ -1,0 +1,13 @@
+{
+    "mcpServers": {
+        "hostInfoMcp": {
+            "command": "uv",
+            "args": [
+                "--directory",
+                "/Users/lukasi33/project/Machine-Learning-Column/ai-mcp",
+                "run",
+                "main.py"
+            ]
+        }
+    }
+}

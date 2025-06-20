@@ -2,10 +2,7 @@ data/
 */data/
 model/
 */model/
-*.json
 *.bin
-*.ini
-*.toml
 *.bak
 *.safetensors
 *.txt
