@@ -1,0 +1,29 @@
+[
+    {
+        "model_type": "openai_chat",
+        "config_name": "gpt-4",
+        "model_name": "gpt-4",
+        "api_key": "xxx",
+        "organization": "xxx",
+        "generate_args": {"temperature": 0.5}
+    },
+    {
+        "model_type": "post_api_chat",
+        "config_name": "my_post_api",
+        "api_url": "https://xxx",
+        "headers": {},
+        "json_args": {}
+    },
+    {
+        "config_name": "ollama_chat-qwen2:7b",
+        "model_type": "ollama_chat",
+        "model_name": "qwen2:7b",
+        "options": {"temperature": 1.0}
+    },
+    {
+        "config_name": "ollama_chat-llama3.1:8b",
+        "model_type": "ollama_chat",
+        "model_name": "llama3.1:8b",
+        "options": {"temperature": 1.0}
+    }
+]
