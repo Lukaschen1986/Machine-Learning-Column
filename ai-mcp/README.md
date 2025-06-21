@@ -16,7 +16,11 @@ uv python install python-3.11
 uv run -p 3.11 python
 
 # 用 uv 创建项目  
-uv init test -p 3.11
+uv init dir_name -p 3.11
+
+cd dir_name
+uv init
+uv venv
 
 # 用 uv 管理环境  
 uv add jupyter

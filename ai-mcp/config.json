@@ -1,10 +1,10 @@
 {
     "mcpServers": {
-        "hostInfoMcp": {
+        "aiMcp": {
             "command": "uv",
             "args": [
                 "--directory",
-                "/Users/lukasi33/project/Machine-Learning-Column/ai-mcp",
+                "C:/my_project/MyGit/Machine-Learning-Column/ai-mcp",
                 "run",
                 "main.py"
             ]
