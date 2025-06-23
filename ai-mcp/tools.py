@@ -4,18 +4,38 @@ import psutil
 import subprocess
 import json
 import pandas as pd
+import pdfplumber
+
+from typing import Dict
 
 
 _path = os.path.dirname(__file__)
 
-def get_district_geocode(district: str) -> str:
+def read_pdf_file(fileName: str) -> str:
+    """根据文件名读取PDF文档
+    
+    Args:
+        fileName (str): 文件名称
+    
+    Returns:
+        str: PDF文档
+    """
+    text = ""
+    with pdfplumber.open(os.path.join(_path, f"data/{fileName}.pdf")) as pdf:
+        for page in pdf.pages:
+            text += page.extract_text()
+            text += "\n\n------分隔页------\n\n"
+    return text
+
+
+def get_district_geocode(district: str) -> Dict[str, str]:
     """根据城市或区县名称查询对应的行政区划编码
 
     Args:
         district (str): 城市或区县名称
 
     Returns:
-        str: district_geocode行政区划编码
+        Dict[str, str]: {"district_geocode": 行政区划编码}
     """
     with pd.ExcelFile(os.path.join(_path, "weather_district_id.xlsx")) as reader:
         df = reader.parse(sheet_name=reader.sheet_names[0], encoding="utf-8-sig")
