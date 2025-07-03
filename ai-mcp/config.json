@@ -1,12 +1,21 @@
 {
     "mcpServers": {
-        "aiMcp": {
+        "sysInfo": {
             "command": "uv",
             "args": [
                 "--directory",
                 "/Users/lukasi33/project/Machine-Learning-Column/ai-mcp",
                 "run",
-                "main.py"
+                "run_sys_info.py"
+            ]
+        },
+        "pdfReader": {
+            "command": "uv",
+            "args": [
+                "--directory",
+                "/Users/lukasi33/project/Machine-Learning-Column/ai-mcp",
+                "run",
+                "run_pdf_file.py"
             ]
         }
     }

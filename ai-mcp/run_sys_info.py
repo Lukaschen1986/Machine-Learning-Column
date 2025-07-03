@@ -1,14 +1,13 @@
 """
 MCP Sever
 """
-import tools
+import tools_sys_info
 from mcp.server.fastmcp import FastMCP
 
 
-mcp = FastMCP(name="ai-mcp")
-mcp.add_tool(fn=tools.get_host_info)
-mcp.add_tool(fn=tools.get_district_geocode)
-mcp.add_tool(fn=tools.read_pdf_file)
+mcp = FastMCP(name="sysInfo")
+mcp.add_tool(fn=tools_sys_info.get_host_info)
+# mcp.add_tool(fn=...)  # 可以添加多个工具函数
 
 # 等价于add_tool
 # @mcp.tool(name="foo")
@@ -16,7 +15,7 @@ mcp.add_tool(fn=tools.read_pdf_file)
 #     return ""
 
 def main():
-    print("Hello from ai-mcp!")
+    print("Hello there!")
     mcp.run(transport="stdio")
 
 
