@@ -13,6 +13,8 @@ model/
 runs/
 */runs/
 log/
+output/
+outputs/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

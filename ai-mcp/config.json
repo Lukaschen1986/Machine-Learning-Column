@@ -17,6 +17,15 @@
                 "run",
                 "run_pdf_file.py"
             ]
+        },
+        "bilibiliSearch": {
+            "command": "uv",
+            "args": [
+                "--directory",
+                "/Users/lukasi33/project/Machine-Learning-Column/ai-mcp",
+                "run",
+                "run_bilibili.py"
+            ]
         }
     }
 }
