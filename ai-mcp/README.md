@@ -29,7 +29,7 @@ python -m ipykernel install --user --name unsloth --display-name "Python unsloth
 uv add unsloth unsloth_zoo  
 
 uv add mcp  
-uv pip install -i https://pypi.tuna.tsinghua.edu.cn/simple mcp  
+uv pip install -i https://pypi.tuna.tsinghua.edu.cn/simple --trusr-host pypi.tuna.tsinghua.edu.cn mcp  
 
 uv run main.py  
 
@@ -56,3 +56,8 @@ uv build
 
 -- 安装打包  
 uv tool install pacakage_name.whl  
+
+# 下载nodejs, for npx
+https://nodejs.org/zh-tw/download  
+node -v
+npm -v

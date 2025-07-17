@@ -1,0 +1,43 @@
+{
+    "mcpServers": {
+       "mcpName-1": {
+        "command": "uv",
+        "args": [
+            "--directory",
+            "/Users/lukasi33/project/Machine-Learning-Column/ai-mcp",
+            "run",
+            "script.py"
+        ]
+       },
+       "mcpName-2": {
+        "command": "uvx",
+        "args": [
+            "mcp-server-baidu-maps"
+        ],
+        "env": {
+            "BAIDU_MAPS_API_KEY": "your-api-key"
+        }
+       },
+       "mcpName-3": {
+        "command": "python",
+        "args": [
+            "-m",
+            "mcp_server_baidu_maps"
+        ],
+        "env": {
+            "BAIDU_MAPS_API_KEY": "your-api-key"
+        }
+       },
+       "mcpName-4": {
+        "isActive": true,
+        "command": "npx",
+        "args": [
+            "-y",
+            "@baidumap/mcp-server-baidu-map"
+        ],
+        "env": {
+            "BAIDU_MAPS_API_KEY": "your-api-key"
+        }
+       }
+    }
+}
