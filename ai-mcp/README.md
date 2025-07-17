@@ -29,7 +29,7 @@ python -m ipykernel install --user --name unsloth --display-name "Python unsloth
 uv add unsloth unsloth_zoo  
 
 uv add mcp  
-uv pip install -i https://pypi.tuna.tsinghua.edu.cn/simple --trusr-host pypi.tuna.tsinghua.edu.cn mcp  
+uv pip install -i https://pypi.tuna.tsinghua.edu.cn/simple --trusted-host pypi.tuna.tsinghua.edu.cn mcp  
 
 uv run main.py  
 
