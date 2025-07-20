@@ -1,0 +1,29 @@
+// 设置 -> settings.json
+{
+    "[python]": {
+        "diffEditor.ignoreTrimWhitespace": false,
+        "editor.formatOnType": true,
+        "editor.wordBasedSuggestions": "off"
+    },
+    "terminal.integrated.defaultProfile.windows": "Command Prompt",
+    "editor.fontLigatures": false,
+    "editor.mouseWheelZoom": true,
+    "python.analysis.completeFunctionParens": true,
+    "workbench.colorTheme": "Visual Studio Dark",
+    "remote.SSH.remotePlatform": {
+        "direct.virtaicloud.com": "linux",
+        "sy-direct.virtaicloud.com": "linux",
+        "hzh.sealos.run_ns-mn4urq8o_devbox": "linux"
+    },
+    "notebook.output.scrolling": true,
+    "dart.lineLength": 120,
+    "dart.insertArgumentPlaceholders": false,
+    "workbench.iconTheme": "material-icon-theme",
+    "git.suggestSmartCommit": false,
+    "workbench.editor.enablePreview": false,
+    "editor.rulers": [
+        120
+    ],
+    "python.analysis.autoImportCompletions": true,
+    "python.analysis.autoFormatStrings": true
+}

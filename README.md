@@ -3,3 +3,5 @@
 
 ## vscode导出安装的插件
 code --list-extensions > extensions.txt
+
+## vscode配置文件
