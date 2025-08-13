@@ -55,7 +55,7 @@ pacakage_name = "module_name:function_name"
 uv build  
 
 -- 安装打包  
-uv tool install pacakage_name.whl  
+uv tool install dist/pacakage_name.whl  
 
 # 下载nodejs, for npx
 https://nodejs.org/zh-tw/download  

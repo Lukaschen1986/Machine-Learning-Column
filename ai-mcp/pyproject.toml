@@ -7,9 +7,13 @@ requires-python = ">=3.11"
 dependencies = [
     "arxiv>=2.2.0",
     "bilibili-api-python>=17.3.0",
+    "fastmcp>=2.11.3",
     "mcp[cli]>=1.9.4",
     "openpyxl>=3.1.5",
     "pandas>=2.3.0",
     "pdfplumber>=0.11.7",
     "psutil>=7.0.0",
+    "setuptools>=80.9.0",
 ]
+[project.scripts]
+pacakage_name = "run_sys_info:main"
