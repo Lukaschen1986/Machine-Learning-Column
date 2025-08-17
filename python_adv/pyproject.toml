@@ -1,0 +1,11 @@
+[project]
+name = "python-adv"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "geopy>=2.4.1",
+    "haversine>=2.9.0",
+    "numpy>=2.3.2",
+]
