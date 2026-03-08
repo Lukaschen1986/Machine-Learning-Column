@@ -42,8 +42,8 @@ if __name__ == "__main__":
     for t in list_days:
         if t % 30 == 0:
             M += 5000
-        if (t % 120 == 0) and (t != 0):
-            M += 10000
+        # if (t % 120 == 0) and (t != 0):
+        #     M += 10000
         if t == 0:
             m1 = M
             m2 = M
