@@ -44,13 +44,13 @@ def calculate_kl_between_two_logits(
         raise ValueError("reduction仅支持'none'/'sum'/'mean'")
 
 
-def calculate_kl_divergence(logits1, logits2, reduction='batchmean'):
+def calculate_kl_divergence(logits_p, logits_q, reduction='batchmean'):
     """
     计算两个logits分布之间的KL散度
     
     参数:
-        logits1: 第一个模型的输出，形状通常为 [batch_size, vocab_size] 或 [batch_size, seq_len, vocab_size]
-        logits2: 第二个模型的输出，形状需与logits1完全一致
+        logits_p: 第一个模型的输出，形状通常为 [batch_size, vocab_size] 或 [batch_size, seq_len, vocab_size]
+        logits_q: 第二个模型的输出，形状需与logits_p完全一致
         reduction: 损失聚合方式，'batchmean'表示对批次求平均（符合KL散度数学定义），
                    'mean'会额外除以维度数，'sum'是求和，'none'返回逐元素结果
     
@@ -58,14 +58,18 @@ def calculate_kl_divergence(logits1, logits2, reduction='batchmean'):
         kl_div: 计算得到的KL散度值
     """
     # 1. 将logits转换为对数概率（log_softmax = log(softmax(logits))）
-    log_probs1 = F.log_softmax(logits1, dim=-1)  # dim=-1表示对最后一维（词表维度）做归一化
+    log_probs_q = F.log_softmax(logits_q, dim=-1)  # dim=-1表示对最后一维（词表维度）做归一化
     
-    # 2. 将logits2转换为普通概率（softmax）
-    probs2 = F.softmax(logits2, dim=-1)
+    # 2. 将logits转换为普通概率（softmax）
+    probs_p = F.softmax(logits_p, dim=-1)
     
-    # 3. 计算KL散度：KL(log_probs1 || probs2)
+    # 3. 计算KL散度：KL(log_probs_p || probs_q)
     # 注意：F.kl_div的第一个参数是log_prob，第二个是prob，reduction='batchmean'是推荐的正确方式
-    kl_div = F.kl_div(log_probs1, probs2, reduction=reduction)
+    kl_div = F.kl_div(
+        input=log_probs_q, 
+        target=probs_p, 
+        reduction=reduction
+        )
     return kl_div
 
 
