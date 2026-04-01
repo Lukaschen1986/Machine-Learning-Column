@@ -28,7 +28,7 @@ This is my PC:
 device = cuda; device_cnt = 1
 torch version = 2.10.0+cu126
 cuda version = 12.6
-transformers version = 5.2.0
+transformers version = 5.3.0
 '''
 
 # ----------------------------------------------------------------------------------------------------------------
@@ -96,10 +96,10 @@ class Generator(th.nn.Module):
             force_download=False,
             local_files_only=True,
             )
-        self._tokenizer.pad_token = (self._tokenizer.eos_token if self._tokenizer.pad_token is None else self._tokenizer.pad_token)
-        self._tokenizer.padding_size = "left"
+        # self._tokenizer.pad_token = (self._tokenizer.eos_token if self._tokenizer.pad_token is None else self._tokenizer.pad_token)
+        # self._tokenizer.padding_size = "left"
         
-        self.base_model = AutoModelForCausalLM.from_pretrained(
+        self._model = AutoModelForCausalLM.from_pretrained(
             pretrained_model_name_or_path=os.path.join(path_model, checkpoint),
             cache_dir=path_model,
             force_download=False,
@@ -109,7 +109,7 @@ class Generator(th.nn.Module):
             dtype=th.bfloat16,
             # quantization_config=config_bnb,
             )
-        self._model = get_peft_model(model=self.base_model, peft_config=lora_config)
+        # self._model = get_peft_model(model=self._model, peft_config=lora_config)
         print(f"Generator:\n{self._model}")
         
         self._model.gradient_checkpointing_enable()  # 启用梯度检查点，节省显存
@@ -373,7 +373,7 @@ def print_trainable_parameters(model):
 
 if __name__ == "__main__":
     # 初始化生成器和反思器
-    generator_checkpoint = "Qwen/Qwen3.5-4B"
+    generator_checkpoint = "Qwen/Qwen3.5-9B"
     reflector_checkpoint = "Qwen/Qwen3.5-4B"
     
     xxx
