@@ -6,6 +6,9 @@ https://doc.agentscope.io/zh_CN/tutorial/quickstart_installation.html
 火山方舟控制台：
 https://console.volcengine.com/ark/region:ark+cn-beijing/overview?briefPage=0&briefType=introduce&type=new
 """
+from json import tool
+from re import M
+import sys
 import warnings; warnings.filterwarnings("ignore")
 import urllib3
 import os
@@ -25,7 +28,7 @@ from agentscope.model import (OpenAIChatModel, ChatResponse)
 from agentscope.memory import InMemoryMemory
 from agentscope.formatter import OpenAIChatFormatter
 from agentscope.tool import (Toolkit, ToolResponse, execute_python_code)
-from agentscope.agent import ReActAgent
+from agentscope.agent import (ReActAgent, AgentBase)
 from agentscope.message import (TextBlock, Msg)
 
 
@@ -64,6 +67,7 @@ async def chat_model(model_name: str, user_prompt: str) -> str:
     res = await model(message)
     return res.content[0]["text"] # type: ignore
 
+# ----------------------------------------------------------------------------------------------------------------------
 # AgentScope 中的流式返回结果为累加式，这意味着每个 chunk 中的内容包含所有之前的内容加上新生成的内容。
 async def chat_model_stream(model_name: str, user_prompt: str) -> None:
     model = OpenAIChatModel(
@@ -91,11 +95,61 @@ async def chat_model_stream(model_name: str, user_prompt: str) -> None:
         print(f"\t{chunk}\n")
     return 
 
+# ----------------------------------------------------------------------------------------------------------------------
+async def react_agent(model_name: str, user_prompt: str) -> None:
+    # 创建一个工具箱，并注册一个工具函数
+    toolkit = Toolkit()
+    toolkit.register_tool_function(execute_python_code)
+    
+    # 创建一个内存对象
+    memory = InMemoryMemory()
+    
+    # 创建一个 ReActAgent 实例
+    jarvis = ReActAgent(
+        name="Jarvis",
+        sys_prompt="你是一个名为 Jarvis 的助手",
+        model=OpenAIChatModel(
+            model_name=model_name,
+            api_key=API_KEY,
+            client_kwargs={
+                "base_url": "https://ark.cn-beijing.volces.com/api/v3",
+                "http_client": httpx.AsyncClient(verify=False),
+            }, # type: ignore
+            generate_kwargs={
+                "temperature": 0.5,
+                "top_p": 0.5,
+                "max_tokens": 512,
+            },
+            stream=True,
+            # enable_thinking=False,
+        ),
+        formatter=OpenAIChatFormatter(),
+        toolkit=toolkit,
+        memory=memory,
+    )
+    
+    # 创建一个用户消息
+    msg = Msg(
+        name="User",
+        role="user",
+        content=user_prompt,
+    )
+    
+    # 让 Jarvis 处理用户消息
+    await jarvis(msg)
+    return
+    
+    
 
 if __name__ == "__main__":
     # model_name="doubao-seed-2-0-pro-260215"
     model_name="deepseek-v3-2-251201"
-    user_prompt = "你好，朋友"
+    # user_prompt = "你好，朋友"
+    user_prompt = "你好！Jarvis，用 Python 运行 Hello World。"
     
-    text = asyncio.run(chat_model(model_name, user_prompt))   # 非流式
-    asyncio.run(chat_model_stream(model_name, user_prompt))   # 流式
+    # text = asyncio.run(chat_model(model_name, user_prompt))   # 非流式
+    # print(text)
+    
+    # asyncio.run(chat_model_stream(model_name, user_prompt))   # 流式
+    
+    asyncio.run(react_agent(model_name, user_prompt))
