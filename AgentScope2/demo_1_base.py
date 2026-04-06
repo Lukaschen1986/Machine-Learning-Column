@@ -6,10 +6,8 @@ https://doc.agentscope.io/zh_CN/tutorial/quickstart_installation.html
 火山方舟控制台：
 https://console.volcengine.com/ark/region:ark+cn-beijing/overview?briefPage=0&briefType=introduce&type=new
 """
-from json import tool
-from re import M
-import sys
 import warnings; warnings.filterwarnings("ignore")
+import sys
 import urllib3
 import os
 import requests
@@ -34,8 +32,13 @@ from agentscope.message import (TextBlock, Msg)
 
 print(f"AgentScope version: {agentscope.__version__}")
 print(f"OpenAI version: {openai.__version__}")
+"""
+AgentScope version: 1.0.18
+OpenAI version: 2.30.0
+"""
 
 # ----------------------------------------------------------------------------------------------------------------------
+# 设置 API Key 和其他配置
 curr_path = "C:\\my_project\\MyGit\\Machine-Learning-Column\\AgentScope2"
 load_dotenv(dotenv_path=os.path.join(curr_path, "agent.env"))
 API_KEY = os.getenv("VOL_API_KEY")
@@ -131,8 +134,8 @@ async def react_agent(model_name: str, user_prompt: str) -> None:
     # 创建一个用户消息
     msg = Msg(
         name="User",
-        role="user",
         content=user_prompt,
+        role="user",
     )
     
     # 让 Jarvis 处理用户消息
