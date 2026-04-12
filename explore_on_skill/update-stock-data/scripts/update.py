@@ -92,7 +92,7 @@ def update_index_daily() -> pd.DataFrame:
 if __name__ == "__main__":
     if len(sys.argv) > 1:
         start_days = int(sys.argv[1])
-        update_index_dailybasic(start_days)
-        update_index_daily()
+        df_index_dailybasic = update_index_dailybasic(start_days)
+        df_index_daily = update_index_daily()
     else:
         print("请提供往前推多少天的数据需要更新作为参数，例如：python update.py 10")
