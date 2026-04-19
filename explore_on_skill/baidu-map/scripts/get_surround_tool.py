@@ -27,13 +27,13 @@ def get_surround(
     Returns:
         str: 返回一个 JSON 字符串，包含周边地点的名称、地址、电话、距离（米）、评分和营业时间等信息。
     """
-    url_1 = f"https://api.map.baidu.com/place/v2/suggestion?query={location}&region={city}&city_limit=true&output=json&ak={baidu_key}"
+    url_1 = f"https://api.map.baidu.com/place/v3/suggestion?query={location}&region={city}&region_limit=true&output=json&ak={baidu_key}"
     response_1 = requests.get(url_1)
     data_1 = response_1.json()
-    origin = (data_1["result"][0]["location"]["lat"], data_1["result"][0]["location"]["lng"])
+    origin = (data_1["results"][0]["location"]["lat"], data_1["results"][0]["location"]["lng"])
     
     url_2 = (
-        f"https://api.map.baidu.com/place/v2/search?query={query}&location={origin[0]},{origin[1]}&radius=2000&output=json"
+        f"https://api.map.baidu.com/place/v3/around?query={query}&location={origin[0]},{origin[1]}&radius=2000&output=json"
         f"&scope=2&sort_name:distance|sort_rule:1&page_size=30&ak={baidu_key}"
     )
     response_2 = requests.get(url_2)
