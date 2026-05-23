@@ -9,7 +9,6 @@ model/
 *.xls
 *.xlsx
 *.whl
-*.yaml
 runs/
 */runs/
 log/
