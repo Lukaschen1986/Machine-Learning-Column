@@ -54,11 +54,11 @@ pip install transformers[serving]
   
 - 3.部署  
 windows下实测微调后缺失preprocessor_config.json，需手工复制  
-scp F:/LLM/Qwen/Qwen3.5-0.8B/preprocessor_config.json C:/my_project/MyGit/LlamaFactory/saves/Qwen3.5-0.8B/full/sft/  
+scp F:/LLM/Qwen/Qwen3.5-0.8B/preprocessor_config.json C:/my_project/MyGit/LlamaFactory/saves/Qwen3.5-0.8B-FFT  
   
 设置环境变量  
-$env:MODEL_PATH="C:/my_project/MyGit/LlamaFactory/saves/Qwen3.5-0.8B/full/sft"  # windows  
-export MODEL_PATH="/LlamaFactory/saves/Qwen3.5-0.8B/full/sft"  # linux  
+$env:MODEL_PATH="C:/my_project/MyGit/LlamaFactory/saves/Qwen3.5-0.8B-FFT"  # windows  
+export MODEL_PATH="/LlamaFactory/saves/Qwen3.5-0.8B-FFT"  # linux  
   
 启动服务 - windows  
 transformers serve `  
@@ -84,7 +84,7 @@ $MODEL_PATH \
 curl -X POST http://0.0.0.0:8080/v1/chat/completions \  
   -H "Content-Type: application/json" \  
   -d '{  
-    "model": "C:/my_project/MyGit/LlamaFactory/saves/Qwen3.5-0.8B/full/sft",  
+    "model": "C:/my_project/MyGit/LlamaFactory/saves/Qwen3.5-0.8B-FFT",  
     "messages": [  
         {"role": "system", "content": "You are a helpful assistant."},  
         {"role": "user", "content": "你好，你都会什么"}  
