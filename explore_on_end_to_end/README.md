@@ -106,7 +106,7 @@ https://github.com/ggml-org/llama.cpp
 - 2.安装（windows）  
 winget install llama.cpp  
   
-git@github.com:ggml-org/llama.cpp.git  
+git clone git@github.com:ggml-org/llama.cpp.git  
 cd llama.cpp  
   
 python convert_hf_to_gguf.py F:/LLM/Qwen/Qwen3.5-0.8B  
