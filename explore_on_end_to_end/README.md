@@ -61,14 +61,14 @@ $env:MODEL_PATH="C:/my_project/MyGit/LlamaFactory/saves/Qwen3.5-0.8B/full/sft"  
 export MODEL_PATH="/LlamaFactory/saves/Qwen3.5-0.8B/full/sft"  # linux  
   
 启动服务 - windows  
-transformers serve `
-$env:MODEL_PATH `
---host "0.0.0.0" `
---port 8080 `
---trust-remote-code `
---dtype bfloat16 `
---device cuda `
---continuous-batching
+transformers serve `  
+$env:MODEL_PATH `  
+--host "0.0.0.0" `  
+--port 8080 `  
+--trust-remote-code `  
+--dtype bfloat16 `  
+--device cuda `  
+--continuous-batching  
   
 启动服务 - linux  
 transformers serve \
@@ -114,6 +114,7 @@ llama-quantize.exe F:/LLM/Qwen/Qwen3.5-0.8B/Qwen3.5-0.8B-BF16.gguf F:/LLM/Qwen/Q
   
 - 3.部署  
 $env:MODEL_NAME="F:/LLM/Qwen/Qwen3.5-0.8B/Qwen3.5-0.8B-Q4_K_M.gguf"  
+
 llama-server.exe `  
 -m $env:MODEL_NAME `  
 --host "0.0.0.0" `  
