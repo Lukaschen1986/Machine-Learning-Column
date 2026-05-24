@@ -1,0 +1,28 @@
+# MCP 服务器配置
+#
+# 支持的 transport 类型:
+#   - streamable_http: MCP Streamable HTTP 协议（推荐，需服务端支持）
+#   - sse: Server-Sent Events 协议
+#   - stdio: 本地进程管道协议
+#
+# 每个 server 会注册到 AgentScope Toolkit 中，工具名格式: {server_name}_{tool_name}
+
+servers:
+  - name: baidu_map_mcp
+    description: "百度地图 — 地理编码、周边搜索、路线规划、实时路况等"
+    enabled: true
+    transport: streamable_http
+    url: "https://mcp.map.baidu.com/mcp?ak="
+    headers: {}
+    # 客户端参数
+    timeout: 30
+    sse_read_timeout: 300
+
+  - name: didi_mcp
+    description: "滴滴出行 — 打车、查价、路线规划、订单管理"
+    enabled: true
+    transport: streamable_http
+    url: "https://mcp.didichuxing.com/mcp-servers?key="
+    headers: {}
+    timeout: 30
+    sse_read_timeout: 300
