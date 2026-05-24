@@ -3,7 +3,7 @@
 - 1.创建环境  
 conda create -n llm python=3.11.15 -y  
 pip install torch torchvision --index-url https://download.pytorch.org/whl/cu126  # 必选  
-pip install transformers==5.6.0 accelerate==1.7.0  # 必选  
+pip install transformers == 5.6.0 accelerate == 1.7.0  # 必选  
 pip install msgpack  # 可选，候补安装  
 pip install -U mistral_common  # 可选，候补安装  
   
@@ -42,10 +42,14 @@ llamafactory-cli train examples/train_full/qwen3_5_full_sft.yaml  # 编辑好配
 nvidia-smi -l 1  # 每秒刷新一次，Ctrl+C 退出  
   
 - 5.结论  
-成功，但微调后，模型文件与原生存在诸多不一致，待深挖  
+成功  
+
+## 3 - transformers + trl
+  - 1.详见 ./Machine-Learning-Column/explore_on_llm/demo_2_2_training_for_fft.ipynb  
+  - 2.结论
+成功  
   
-  
-## 3 - transformers serve  
+## 4 - transformers serve  
 - 1.文档地址  
 https://huggingface.co/docs/transformers/main/serving  
   
@@ -53,38 +57,22 @@ https://huggingface.co/docs/transformers/main/serving
 pip install transformers[serving]  
   
 - 3.部署  
-windows下实测微调后缺失preprocessor_config.json，需手工复制  
-scp F:/LLM/Qwen/Qwen3.5-0.8B/preprocessor_config.json C:/my_project/MyGit/LlamaFactory/saves/Qwen3.5-0.8B-FFT  
-  
 设置环境变量  
-$env:MODEL_PATH="C:/my_project/MyGit/LlamaFactory/saves/Qwen3.5-0.8B-FFT"  # windows  
-export MODEL_PATH="/LlamaFactory/saves/Qwen3.5-0.8B-FFT"  # linux  
+$env:MODEL_PATH="F:\LLM\output\Qwen3.5-0.8B-FFT"  # windows  
+export MODEL_PATH="..."  # linux  
   
 启动服务 - windows  
-transformers serve `  
-$env:MODEL_PATH `  
---host "0.0.0.0" `  
---port 8080 `  
---trust-remote-code `  
---dtype bfloat16 `  
---device cuda `  
---continuous-batching  
+transformers serve $env:MODEL_PATH --host "0.0.0.0" --port 8080 --trust-remote-code --dtype bfloat16 --device cuda  
+--continuous-batching  # 可选  
   
 启动服务 - linux  
-transformers serve \
-$MODEL_PATH \
---host "0.0.0.0" \
---port 8080 \
---trust-remote-code \
---dtype bfloat16 \
---device cuda \
---continuous-batching
+transformers serve $MODEL_PATH --host "0.0.0.0" --port 8080 --trust-remote-code --dtype bfloat16 --device npu --continuous-batching  
   
 - 4.测试（微调时指定了qwen3_nothink，因此没有thinking参数）  
 curl -X POST http://0.0.0.0:8080/v1/chat/completions \  
   -H "Content-Type: application/json" \  
   -d '{  
-    "model": "C:/my_project/MyGit/LlamaFactory/saves/Qwen3.5-0.8B-FFT",  
+    "model": "F:\\LLM\\output\\Qwen3.5-0.8B-FFT",  
     "messages": [  
         {"role": "system", "content": "You are a helpful assistant."},  
         {"role": "user", "content": "你好，你都会什么"}  
@@ -111,16 +99,10 @@ cd llama.cpp
   
 python convert_hf_to_gguf.py F:/LLM/Qwen/Qwen3.5-0.8B  
 llama-quantize.exe F:/LLM/Qwen/Qwen3.5-0.8B/Qwen3.5-0.8B-BF16.gguf F:/LLM/Qwen/Qwen3.5-0.8B/Qwen3.5-0.8B-Q4_K_M.gguf Q4_K_M  
-  
+
 - 3.部署  
 $env:MODEL_NAME="F:/LLM/Qwen/Qwen3.5-0.8B/Qwen3.5-0.8B-Q4_K_M.gguf"  
-
-llama-server.exe `  
--m $env:MODEL_NAME `  
---host "0.0.0.0" `  
---port 8080 `  
--ngl 99 `  
---parallel 4  
+llama-server.exe -m $env:MODEL_NAME --host "0.0.0.0" --port 8080  
   
 - 4.测试  
 {  
@@ -137,7 +119,7 @@ llama-server.exe `
 }  
   
 - 5.结论  
-成功，但只能部署原生模型，猜测 llama.cpp 不兼容 llama-factory 微调模型  
+成功，但只能部署原生模型，llama.cpp 对微调后的 Qwen3.5 系模型支持不成熟  
   
   
 ## 5 - SGLang (Linux Only)  
