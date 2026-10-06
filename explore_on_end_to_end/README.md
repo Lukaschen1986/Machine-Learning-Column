@@ -54,11 +54,14 @@ nvidia-smi -l 1  # 每秒刷新一次，Ctrl+C 退出
 https://huggingface.co/docs/transformers/main/serving  
   
 - 2.安装  
-pip install transformers[serving]  
+pip install transformers[serving]==5.6.0 
   
 - 3.部署  
 设置环境变量  
 $env:MODEL_PATH="F:\LLM\output\Qwen3.5-0.8B-FFT"  # windows  
+
+mkdir -p /home/user/.cache/huggingface/hub
+export HF_HUB_CACHE="/home/user/.cache/huggingface/hub"
 export MODEL_PATH="..."  # linux  
   
 启动服务 - windows  

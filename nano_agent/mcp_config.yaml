@@ -1,0 +1,29 @@
+# nano_agent — MCP 客户端配置（自定 YAML 格式）
+# 字段对齐 QwenPaw MCPClientConfig，降低学习成本
+#
+# URL 中支持 ${ENV_VAR} 格式的环境变量引用（运行时由 agent.py 解析）
+
+clients:
+
+  # ── 滴滴出行 MCP ──
+  didi-mcp:
+    name: didi_mcp
+    transport: streamable_http
+    url: "https://mcp.didichuxing.com/mcp-servers?key=${DIDI_MCP_KEY}"
+
+  # ── stdio 型 MCP（通过子进程启动） ──
+  # tavily-mcp:
+  #   name: tavily_mcp
+  #   transport: stdio
+  #   command: npx
+  #   args: ["-y", "tavily-mcp@latest"]
+  #   env:
+  #     TAVILY_API_KEY: "your-key-here"
+
+  # ── SSE / streamable_http 型 MCP（连接到远程服务） ──
+  # weather-mcp:
+  #   name: weather_mcp
+  #   transport: sse
+  #   url: http://localhost:8000/sse
+  #   headers:
+  #     Authorization: "Bearer your-token"

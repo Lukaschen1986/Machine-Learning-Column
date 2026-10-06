@@ -1,0 +1,11 @@
+﻿fastapi>=0.115.0
+uvicorn[standard]>=0.34.0
+pydantic>=2.0.0
+pydantic-settings>=2.0.0
+pyyaml>=6.0
+
+# AgentScope（核心引擎）
+agentscope>=1.0.20
+
+# QwenPaw（MCP StatefulClient 引用）
+qwenpaw>=1.1.9
